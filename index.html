@@ -334,6 +334,12 @@
                 <h3 style="margin-bottom: 12px;">Saved Datasets:</h3>
                 <div id="datasetList"></div>
             </div>
+            
+            <div id="debugPanel" style="background: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 16px; margin-bottom: 20px; display: none;">
+                <h3 style="margin-bottom: 8px; color: #991b1b;">Debug Information</h3>
+                <div id="debugLog" style="font-family: 'Courier New', monospace; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap;"></div>
+                <button onclick="document.getElementById('debugPanel').style.display='none'" style="margin-top: 8px; padding: 6px 12px; font-size: 14px; background: #6b7280;">Close</button>
+            </div>
         </div>
     </div>
     
@@ -420,9 +426,19 @@
         }
         
         // Firestore dataset functions
+        function showDebug(message) {
+            const debugPanel = document.getElementById('debugPanel');
+            const debugLog = document.getElementById('debugLog');
+            debugPanel.style.display = 'block';
+            debugLog.textContent += message + '\n';
+        }
+        
         async function saveDataset() {
             const csvData = document.getElementById('dataInput').value;
             const name = document.getElementById('datasetName').value.trim();
+            
+            // Clear previous debug info
+            document.getElementById('debugLog').textContent = '';
             
             if (!csvData.trim()) {
                 alert('Please paste CSV data first!');
@@ -441,22 +457,40 @@
             }
             
             try {
-                const entries = parseCSV(csvData);
+                showDebug('Starting save process...');
+                showDebug(`User ID: ${user.uid}`);
+                showDebug(`User Email: ${user.email}`);
+                showDebug(`Dataset Name: ${name}`);
                 
-                // Save to Firestore
-                const datasetDocRef = window.firestore.doc(window.db, 'timeline_datasets', `${user.uid}_${name}`);
-                await window.firestore.setDoc(datasetDocRef, {
-                    userId: user.uid,
-                    userEmail: user.email,
+                const entries = parseCSV(csvData);
+                showDebug(`Parsed ${entries.length} entries`);
+                
+                // Save to Firestore - use subcollection under user document
+                const path = `users/${user.uid}/datasets/${name}`;
+                showDebug(`Firestore path: ${path}`);
+                
+                const datasetDocRef = window.firestore.doc(window.db, path);
+                showDebug('Document reference created');
+                
+                const dataToSave = {
                     name: name,
                     entries: entries,
                     savedAt: new Date().toISOString()
-                });
+                };
+                showDebug('Data object prepared');
+                
+                await window.firestore.setDoc(datasetDocRef, dataToSave);
+                showDebug('✅ Save successful!');
                 
                 alert(`Dataset "${name}" saved to cloud!`);
                 document.getElementById('datasetName').value = '';
                 
             } catch (error) {
+                showDebug('❌ ERROR OCCURRED:');
+                showDebug(`Error code: ${error.code}`);
+                showDebug(`Error message: ${error.message}`);
+                showDebug(`Full error: ${JSON.stringify(error, null, 2)}`);
+                
                 alert('Error saving dataset: ' + error.message);
                 console.error(error);
             }
@@ -475,11 +509,10 @@
             if (menu.style.display === 'none') {
                 try {
                     // Query Firestore for user's datasets
-                    const { collection: firestoreCollection, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const { collection: firestoreCollection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
                     
-                    const datasetsRef = firestoreCollection(window.db, 'timeline_datasets');
-                    const q = query(datasetsRef, where('userId', '==', user.uid));
-                    const querySnapshot = await getDocs(q);
+                    const datasetsRef = firestoreCollection(window.db, `users/${user.uid}/datasets`);
+                    const querySnapshot = await getDocs(datasetsRef);
                     
                     if (querySnapshot.empty) {
                         list.innerHTML = '<p style="color: #6b7280;">No saved datasets yet.</p>';
@@ -527,7 +560,7 @@
             }
             
             try {
-                const datasetDocRef = window.firestore.doc(window.db, 'timeline_datasets', `${user.uid}_${name}`);
+                const datasetDocRef = window.firestore.doc(window.db, `users/${user.uid}/datasets/${name}`);
                 const docSnap = await window.firestore.getDoc(datasetDocRef);
                 
                 if (docSnap.exists()) {
@@ -573,7 +606,7 @@
             }
             
             try {
-                const datasetDocRef = window.firestore.doc(window.db, 'timeline_datasets', `${user.uid}_${name}`);
+                const datasetDocRef = window.firestore.doc(window.db, `users/${user.uid}/datasets/${name}`);
                 await window.firestore.deleteDoc(datasetDocRef);
                 
                 // Refresh the list
