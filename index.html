@@ -297,11 +297,12 @@
         <div class="app-content" id="appContent">
             <div class="instructions">
                 <h3>How to use:</h3>
-                <p>1. In your Offload app, click "📋 Copy Last 20 (CSV)" button<br>
+                <p>1. In your Offload app, copy your CSV data<br>
                 2. Paste the CSV data into the box below<br>
-                3. Click "Upload to Cloud" to save your data<br>
-                4. Your timeline will automatically display<br>
-                5. Hover over any slice to see details</p>
+                3. Click "Generate Timeline" to visualize your data<br>
+                4. Click "Save Dataset" to save it to the cloud<br>
+                5. Use "Load Dataset" to load previously saved datasets<br>
+                6. Hover over any slice to see details</p>
             </div>
             
             <div id="timeline"></div>
@@ -320,11 +321,18 @@
             <textarea id="dataInput" placeholder="Paste your CSV data here..."></textarea>
             
             <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
-                <button onclick="uploadData()">☁️ Upload to Cloud</button>
-                <button onclick="downloadData()" style="background: #7c3aed;">⬇️ Download from Cloud</button>
+                <button onclick="generateTimeline()">Generate Timeline</button>
                 <button onclick="deduplicateData()" style="background: #f59e0b;">🧹 Remove Duplicates</button>
                 <button onclick="clearData()" style="background: #dc2626;">🗑️ Clear Data</button>
                 <button onclick="showMergeDialog()" style="background: #0891b2;">🔄 Import & Merge</button>
+                <input type="text" id="datasetName" placeholder="Dataset name (e.g., 'Jan 2026 Data')" style="flex: 1; min-width: 250px; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px;">
+                <button onclick="saveDataset()" style="background: #059669;">💾 Save Dataset</button>
+                <button onclick="showLoadMenu()" style="background: #7c3aed;">📂 Load Dataset</button>
+            </div>
+            
+            <div id="loadMenu" style="display: none; background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                <h3 style="margin-bottom: 12px;">Saved Datasets:</h3>
+                <div id="datasetList"></div>
             </div>
         </div>
     </div>
@@ -411,11 +419,18 @@
             }
         }
         
-        // Firestore functions
-        async function uploadData() {
+        // Firestore dataset functions
+        async function saveDataset() {
             const csvData = document.getElementById('dataInput').value;
+            const name = document.getElementById('datasetName').value.trim();
+            
             if (!csvData.trim()) {
                 alert('Please paste CSV data first!');
+                return;
+            }
+            
+            if (!name) {
+                alert('Please enter a name for this dataset!');
                 return;
             }
             
@@ -428,23 +443,83 @@
             try {
                 const entries = parseCSV(csvData);
                 
-                // Store in Firestore under timeline_data collection
-                const userDocRef = window.firestore.doc(window.db, 'timeline_data', user.uid);
-                await window.firestore.setDoc(userDocRef, {
+                // Save to Firestore
+                const datasetDocRef = window.firestore.doc(window.db, 'timeline_datasets', `${user.uid}_${name}`);
+                await window.firestore.setDoc(datasetDocRef, {
+                    userId: user.uid,
+                    userEmail: user.email,
+                    name: name,
                     entries: entries,
-                    lastUpdated: new Date().toISOString(),
-                    userEmail: user.email
+                    savedAt: new Date().toISOString()
                 });
                 
-                alert('Data uploaded to cloud successfully!');
-                generateTimeline();
+                alert(`Dataset "${name}" saved to cloud!`);
+                document.getElementById('datasetName').value = '';
+                
             } catch (error) {
-                alert('Error uploading data: ' + error.message);
+                alert('Error saving dataset: ' + error.message);
                 console.error(error);
             }
         }
         
-        async function downloadData() {
+        async function showLoadMenu() {
+            const menu = document.getElementById('loadMenu');
+            const list = document.getElementById('datasetList');
+            
+            const user = window.auth.currentUser;
+            if (!user) {
+                alert('Please sign in first!');
+                return;
+            }
+            
+            if (menu.style.display === 'none') {
+                try {
+                    // Query Firestore for user's datasets
+                    const { collection: firestoreCollection, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    
+                    const datasetsRef = firestoreCollection(window.db, 'timeline_datasets');
+                    const q = query(datasetsRef, where('userId', '==', user.uid));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (querySnapshot.empty) {
+                        list.innerHTML = '<p style="color: #6b7280;">No saved datasets yet.</p>';
+                    } else {
+                        let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+                        
+                        querySnapshot.forEach((doc) => {
+                            const dataset = doc.data();
+                            const date = new Date(dataset.savedAt).toLocaleString();
+                            const escapedName = dataset.name.replace(/'/g, "\\'");
+                            
+                            html += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border: 1px solid #e5e7eb; border-radius: 6px;">
+                                    <div>
+                                        <strong>${dataset.name}</strong>
+                                        <div style="font-size: 12px; color: #6b7280;">Saved: ${date} | ${dataset.entries.length} entries</div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button onclick="loadDataset('${escapedName}')" style="padding: 6px 12px; font-size: 14px; background: #2563eb;">Load</button>
+                                        <button onclick="deleteDataset('${escapedName}')" style="padding: 6px 12px; font-size: 14px; background: #dc2626;">Delete</button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        html += '</div>';
+                        list.innerHTML = html;
+                    }
+                    
+                    menu.style.display = 'block';
+                } catch (error) {
+                    alert('Error loading datasets: ' + error.message);
+                    console.error(error);
+                }
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+        
+        async function loadDataset(name) {
             const user = window.auth.currentUser;
             if (!user) {
                 alert('Please sign in first!');
@@ -452,12 +527,12 @@
             }
             
             try {
-                const userDocRef = window.firestore.doc(window.db, 'timeline_data', user.uid);
-                const docSnap = await window.firestore.getDoc(userDocRef);
+                const datasetDocRef = window.firestore.doc(window.db, 'timeline_datasets', `${user.uid}_${name}`);
+                const docSnap = await window.firestore.getDoc(datasetDocRef);
                 
                 if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const entries = data.entries;
+                    const dataset = docSnap.data();
+                    const entries = dataset.entries;
                     
                     // Convert to CSV
                     const headers = Object.keys(entries[0]);
@@ -475,48 +550,46 @@
                     
                     document.getElementById('dataInput').value = csvOutput;
                     generateTimeline();
-                    alert('Data downloaded from cloud!');
+                    document.getElementById('loadMenu').style.display = 'none';
+                    alert(`Dataset "${name}" loaded!`);
                 } else {
-                    alert('No cloud data found. Upload some data first!');
+                    alert('Dataset not found!');
                 }
             } catch (error) {
-                alert('Error downloading data: ' + error.message);
+                alert('Error loading dataset: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        async function deleteDataset(name) {
+            if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+                return;
+            }
+            
+            const user = window.auth.currentUser;
+            if (!user) {
+                alert('Please sign in first!');
+                return;
+            }
+            
+            try {
+                const datasetDocRef = window.firestore.doc(window.db, 'timeline_datasets', `${user.uid}_${name}`);
+                await window.firestore.deleteDoc(datasetDocRef);
+                
+                // Refresh the list
+                showLoadMenu();
+                showLoadMenu();
+                
+                alert(`Dataset "${name}" deleted!`);
+            } catch (error) {
+                alert('Error deleting dataset: ' + error.message);
                 console.error(error);
             }
         }
         
         async function loadUserData() {
-            const user = window.auth.currentUser;
-            if (!user) return;
-            
-            try {
-                const userDocRef = window.firestore.doc(window.db, 'timeline_data', user.uid);
-                const docSnap = await window.firestore.getDoc(userDocRef);
-                
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const entries = data.entries;
-                    
-                    // Convert to CSV
-                    const headers = Object.keys(entries[0]);
-                    let csvOutput = headers.join(',') + '\n';
-                    entries.forEach(entry => {
-                        const row = headers.map(h => {
-                            const value = entry[h] || '';
-                            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-                                return '"' + value.replace(/"/g, '""') + '"';
-                            }
-                            return value;
-                        }).join(',');
-                        csvOutput += row + '\n';
-                    });
-                    
-                    document.getElementById('dataInput').value = csvOutput;
-                    generateTimeline();
-                }
-            } catch (error) {
-                console.error('Error loading user data:', error);
-            }
+            // Don't auto-load anything on sign-in
+            // User will manually load datasets when they want
         }
         
         // CSV Parsing
@@ -1054,9 +1127,6 @@
                 document.getElementById('dataInput').value = csvOutput;
                 statusDiv.innerHTML = debugLog.join('<br>');
                 generateTimeline();
-                
-                // Auto-upload to cloud
-                await uploadData();
                 
             } catch (error) {
                 statusDiv.innerHTML = `<span style="color: #dc2626;">❌ Error: ${error.message}</span><br><br>${error.stack}`;
