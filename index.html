@@ -230,11 +230,13 @@
             position: absolute;
             background: rgba(0, 0, 0, 0.95);
             color: white;
-            padding: 16px;
+            padding: 20px;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 15px;
             width: calc(100% - 48px);
             max-width: none;
+            max-height: 400px;
+            overflow-y: auto;
             z-index: 1000;
             pointer-events: none;
             top: 260px;
@@ -249,12 +251,12 @@
         .tooltip h4 {
             margin-bottom: 8px;
             color: #fbbf24;
-            font-size: 15px;
+            font-size: 18px;
         }
         
         .tooltip p {
             margin: 4px 0;
-            font-size: 12px;
+            font-size: 14px;
         }
         
         .tooltip-grid {
@@ -267,7 +269,7 @@
         .tooltip-notes {
             grid-column: 1 / -1;
             margin-top: 8px;
-            font-size: 11px;
+            font-size: 13px;
             opacity: 0.9;
         }
         
