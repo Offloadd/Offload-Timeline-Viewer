@@ -942,7 +942,7 @@
                                      onmouseenter="showTooltip(event, ${globalIndex})"
                                      onmouseleave="hideTooltip()"
                                      data-index="${globalIndex}"
-                                     data-entry='${JSON.stringify(entry).replace(/'/g, "&apos;")}'>
+                                     data-entry='${JSON.stringify(entry).replace(/'/g, "&#39;").replace(/"/g, "&quot;")}'>
                                     <button class="delete-btn" onclick="deleteEntry(event, ${globalIndex})" title="Delete this entry">×</button>
                                     ${vizHTML}
                                 </div>
@@ -968,7 +968,8 @@
         function showTooltip(event, index) {
             const tooltip = document.getElementById('tooltip');
             const slice = event.currentTarget;
-            const entry = JSON.parse(slice.getAttribute('data-entry'));
+            const entryJson = slice.getAttribute('data-entry').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+            const entry = JSON.parse(entryJson);
             
             const date = new Date(entry.Timestamp).toLocaleString();
             
