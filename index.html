@@ -863,6 +863,8 @@
             }
         }
         
+        let globalEntries = []; // Store parsed entries globally
+        
         function generateTimeline() {
             const input = document.getElementById('dataInput').value;
             const timeline = document.getElementById('timeline');
@@ -887,6 +889,9 @@
                 }
                 
                 entries.reverse();
+                
+                // Store globally for tooltip access
+                globalEntries = entries;
                 
                 const monthGroups = new Map();
                 entries.forEach(entry => {
@@ -941,8 +946,7 @@
                                 <div class="entry-viz" 
                                      onmouseenter="showTooltip(event, ${globalIndex})"
                                      onmouseleave="hideTooltip()"
-                                     data-index="${globalIndex}"
-                                     data-entry='${JSON.stringify(entry).replace(/'/g, "&#39;").replace(/"/g, "&quot;")}'>
+                                     data-index="${globalIndex}">
                                     <button class="delete-btn" onclick="deleteEntry(event, ${globalIndex})" title="Delete this entry">×</button>
                                     ${vizHTML}
                                 </div>
@@ -967,9 +971,12 @@
         
         function showTooltip(event, index) {
             const tooltip = document.getElementById('tooltip');
-            const slice = event.currentTarget;
-            const entryJson = slice.getAttribute('data-entry').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-            const entry = JSON.parse(entryJson);
+            const entry = globalEntries[index];
+            
+            if (!entry) {
+                console.error('Entry not found at index:', index);
+                return;
+            }
             
             const date = new Date(entry.Timestamp).toLocaleString();
             
