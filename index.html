@@ -4,7 +4,279 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Offload Timeline Viewer</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 20px;
+            background: #f3f4f6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+        
+        .auth-container {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .auth-container h3 {
+            margin-bottom: 8px;
+            color: #92400e;
+        }
+        
+        .auth-form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .auth-form input {
+            padding: 8px 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .auth-form button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .auth-form button:hover {
+            background: #1d4ed8;
+        }
+        
+        .user-info {
+            color: #78350f;
+            font-weight: 600;
+        }
+        
+        .instructions {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 8px;
+            color: #1e40af;
+        }
+        
+        .instructions p {
+            color: #1e3a8a;
+            line-height: 1.5;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-bottom: 12px;
+            resize: vertical;
+        }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        button:hover {
+            background: #1d4ed8;
+        }
+        
+        #timeline {
+            overflow-x: auto;
+            overflow-y: hidden;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+            white-space: nowrap;
+            display: none;
+        }
+        
+        .timeline-wrapper {
+            display: inline-block;
+            white-space: nowrap;
+        }
+        
+        .month-group {
+            display: inline-block;
+            vertical-align: top;
+            border-right: 2px solid #9ca3af;
+            padding-right: 8px;
+            margin-right: 8px;
+        }
+        
+        .month-group:last-child {
+            border-right: none;
+        }
+        
+        .month-header {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1f2937;
+            padding: 2px 4px;
+            margin-bottom: 2px;
+        }
+        
+        .month-days {
+            display: inline-flex;
+        }
+        
+        .day-group {
+            display: inline-block;
+            vertical-align: top;
+        }
+        
+        .day-header {
+            text-align: center;
+            font-size: 9px;
+            font-weight: 600;
+            color: #6b7280;
+            padding: 1px 0;
+            line-height: 1;
+        }
+        
+        .day-entries {
+            display: inline-flex;
+        }
+        
+        .entry-viz {
+            width: 10px;
+            height: 274px;
+            position: relative;
+            background: white;
+            display: inline-block;
+            vertical-align: top;
+            margin: 0px;
+            cursor: pointer;
+        }
+        
+        .entry-viz:hover {
+            outline: 2px solid #000;
+            z-index: 10;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            line-height: 1;
+            cursor: pointer;
+            display: none;
+            z-index: 20;
+            padding: 0;
+        }
+        
+        .entry-viz:hover .delete-btn {
+            display: block;
+        }
+        
+        .delete-btn:hover {
+            background: #b91c1c;
+        }
+        
+        .tooltip {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 15px;
+            width: calc(100% - 48px);
+            max-width: none;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            pointer-events: none;
+            top: 260px;
+            left: 24px;
+            right: 24px;
+        }
+        
+        .tooltip.active {
+            display: block;
+        }
+        
+        .tooltip h4 {
+            margin-bottom: 8px;
+            color: #fbbf24;
+            font-size: 18px;
+        }
+        
+        .tooltip p {
+            margin: 4px 0;
+            font-size: 14px;
+        }
+        
+        .tooltip-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 8px;
+        }
+        
+        .tooltip-notes {
+            grid-column: 1 / -1;
+            margin-top: 8px;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .app-content {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -75,6 +347,835 @@
     
     <div id="tooltip" class="tooltip"></div>
     
-    <script type="module" src="app.js"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA89BZxelKRoK64JnYtSdWUho2WUfWymII",
+            authDomain: "capacity-monitor.firebaseapp.com",
+            projectId: "capacity-monitor",
+            storageBucket: "capacity-monitor.firebasestorage.app",
+            messagingSenderId: "455641716280",
+            appId: "1:455641716280:web:5848888e290e47114c78cd",
+            measurementId: "G-CGR5R0D1SP"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Make Firebase available globally
+        window.auth = auth;
+        window.db = db;
+        window.firebaseAuth = { createUserWithEmailAndPassword, signInWithEmailAndPassword, firebaseSignOut };
+        window.firestore = { collection, doc, setDoc, getDoc, updateDoc, deleteDoc };
+        
+        // Auth state observer
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('authForm').style.display = 'none';
+                document.getElementById('userInfo').style.display = 'block';
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('appContent').style.display = 'block';
+                document.querySelector('.instructions').style.display = 'block';
+                
+                // Auto-load user's data
+                loadUserData();
+            } else {
+                document.getElementById('authForm').style.display = 'flex';
+                document.getElementById('userInfo').style.display = 'none';
+                document.getElementById('appContent').style.display = 'none';
+            }
+        });
+    </script>
+    
+    <script>
+        // Auth functions
+        async function signUp() {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            
+            try {
+                await window.firebaseAuth.createUserWithEmailAndPassword(window.auth, email, password);
+                alert('Account created successfully!');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function signIn() {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            
+            try {
+                await window.firebaseAuth.signInWithEmailAndPassword(window.auth, email, password);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function signOut() {
+            try {
+                await window.firebaseAuth.firebaseSignOut(window.auth);
+                document.getElementById('dataInput').value = '';
+                document.getElementById('timeline').innerHTML = '';
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        // Firestore dataset functions
+        function showDebug(message) {
+            const debugPanel = document.getElementById('debugPanel');
+            const debugLog = document.getElementById('debugLog');
+            debugPanel.style.display = 'block';
+            debugLog.textContent += message + '\n';
+        }
+        
+        async function saveDataset() {
+            const csvData = document.getElementById('dataInput').value;
+            const name = document.getElementById('datasetName').value.trim();
+            
+            // Clear previous debug info
+            document.getElementById('debugLog').textContent = '';
+            
+            if (!csvData.trim()) {
+                alert('Please paste CSV data first!');
+                return;
+            }
+            
+            if (!name) {
+                alert('Please enter a name for this dataset!');
+                return;
+            }
+            
+            const user = window.auth.currentUser;
+            if (!user) {
+                alert('Please sign in first!');
+                return;
+            }
+            
+            try {
+                showDebug('Starting save process...');
+                showDebug(`User ID: ${user.uid}`);
+                showDebug(`User Email: ${user.email}`);
+                showDebug(`Dataset Name: ${name}`);
+                
+                const entries = parseCSV(csvData);
+                showDebug(`Parsed ${entries.length} entries`);
+                
+                // Save to Firestore - use subcollection under user document
+                const path = `users/${user.uid}/datasets/${name}`;
+                showDebug(`Firestore path: ${path}`);
+                
+                const datasetDocRef = window.firestore.doc(window.db, path);
+                showDebug('Document reference created');
+                
+                const dataToSave = {
+                    name: name,
+                    entries: entries,
+                    savedAt: new Date().toISOString()
+                };
+                showDebug('Data object prepared');
+                
+                await window.firestore.setDoc(datasetDocRef, dataToSave);
+                showDebug('✅ Save successful!');
+                
+                alert(`Dataset "${name}" saved to cloud!`);
+                document.getElementById('datasetName').value = '';
+                
+            } catch (error) {
+                showDebug('❌ ERROR OCCURRED:');
+                showDebug(`Error code: ${error.code}`);
+                showDebug(`Error message: ${error.message}`);
+                showDebug(`Full error: ${JSON.stringify(error, null, 2)}`);
+                
+                alert('Error saving dataset: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        async function showLoadMenu() {
+            const menu = document.getElementById('loadMenu');
+            const list = document.getElementById('datasetList');
+            
+            const user = window.auth.currentUser;
+            if (!user) {
+                alert('Please sign in first!');
+                return;
+            }
+            
+            if (menu.style.display === 'none') {
+                try {
+                    // Query Firestore for user's datasets
+                    const { collection: firestoreCollection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    
+                    const datasetsRef = firestoreCollection(window.db, `users/${user.uid}/datasets`);
+                    const querySnapshot = await getDocs(datasetsRef);
+                    
+                    if (querySnapshot.empty) {
+                        list.innerHTML = '<p style="color: #6b7280;">No saved datasets yet.</p>';
+                    } else {
+                        let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+                        
+                        querySnapshot.forEach((doc) => {
+                            const dataset = doc.data();
+                            const date = new Date(dataset.savedAt).toLocaleString();
+                            const escapedName = dataset.name.replace(/'/g, "\\'");
+                            
+                            html += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border: 1px solid #e5e7eb; border-radius: 6px;">
+                                    <div>
+                                        <strong>${dataset.name}</strong>
+                                        <div style="font-size: 12px; color: #6b7280;">Saved: ${date} | ${dataset.entries.length} entries</div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button onclick="loadDataset('${escapedName}')" style="padding: 6px 12px; font-size: 14px; background: #2563eb;">Load</button>
+                                        <button onclick="deleteDataset('${escapedName}')" style="padding: 6px 12px; font-size: 14px; background: #dc2626;">Delete</button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        html += '</div>';
+                        list.innerHTML = html;
+                    }
+                    
+                    menu.style.display = 'block';
+                } catch (error) {
+                    alert('Error loading datasets: ' + error.message);
+                    console.error(error);
+                }
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+        
+        async function loadDataset(name) {
+            const user = window.auth.currentUser;
+            if (!user) {
+                alert('Please sign in first!');
+                return;
+            }
+            
+            try {
+                const datasetDocRef = window.firestore.doc(window.db, `users/${user.uid}/datasets/${name}`);
+                const docSnap = await window.firestore.getDoc(datasetDocRef);
+                
+                if (docSnap.exists()) {
+                    const dataset = docSnap.data();
+                    const entries = dataset.entries;
+                    
+                    // Convert to CSV
+                    const headers = Object.keys(entries[0]);
+                    let csvOutput = headers.join(',') + '\n';
+                    entries.forEach(entry => {
+                        const row = headers.map(h => {
+                            const value = entry[h] || '';
+                            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                                return '"' + value.replace(/"/g, '""') + '"';
+                            }
+                            return value;
+                        }).join(',');
+                        csvOutput += row + '\n';
+                    });
+                    
+                    document.getElementById('dataInput').value = csvOutput;
+                    generateTimeline();
+                    document.getElementById('loadMenu').style.display = 'none';
+                    alert(`Dataset "${name}" loaded!`);
+                } else {
+                    alert('Dataset not found!');
+                }
+            } catch (error) {
+                alert('Error loading dataset: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        async function deleteDataset(name) {
+            if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+                return;
+            }
+            
+            const user = window.auth.currentUser;
+            if (!user) {
+                alert('Please sign in first!');
+                return;
+            }
+            
+            try {
+                const datasetDocRef = window.firestore.doc(window.db, `users/${user.uid}/datasets/${name}`);
+                await window.firestore.deleteDoc(datasetDocRef);
+                
+                // Refresh the list
+                showLoadMenu();
+                showLoadMenu();
+                
+                alert(`Dataset "${name}" deleted!`);
+            } catch (error) {
+                alert('Error deleting dataset: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        async function loadUserData() {
+            // Don't auto-load anything on sign-in
+            // User will manually load datasets when they want
+        }
+        
+        // CSV Parsing
+        function parseCSV(csv) {
+            const lines = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < csv.length; i++) {
+                const char = csv[i];
+                const nextChar = csv[i + 1];
+                
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === '\n' && !inQuotes) {
+                    if (current.trim()) {
+                        lines.push(current);
+                    }
+                    current = '';
+                } else if (char === '\r' && nextChar === '\n' && !inQuotes) {
+                    if (current.trim()) {
+                        lines.push(current);
+                    }
+                    current = '';
+                    i++;
+                } else {
+                    current += char;
+                }
+            }
+            if (current.trim()) {
+                lines.push(current);
+            }
+            
+            const headers = parseCSVLine(lines[0]);
+            const entries = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                const entry = {};
+                headers.forEach((header, index) => {
+                    entry[header] = values[index] || '';
+                });
+                entries.push(entry);
+            }
+            
+            return entries;
+        }
+        
+        function parseCSVLine(line) {
+            const values = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+                
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    values.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            values.push(current.trim());
+            
+            return values;
+        }
+        
+        function generateVisualizationHTML(stressorPercent, stabilizerPercent, opportunityPercent) {
+            const height = 274;
+            const minZoneHeight = 30;
+            
+            let stressHeight = (stressorPercent / 100) * height;
+            let regulatedHeight = (stabilizerPercent / 100) * height;
+            let opportunityHeight = (opportunityPercent / 100) * height;
+            
+            if (stressHeight + regulatedHeight + opportunityHeight > height) {
+                const scale = height / (stressHeight + regulatedHeight + opportunityHeight);
+                stressHeight *= scale;
+                regulatedHeight *= scale;
+                opportunityHeight *= scale;
+            }
+            
+            const availableForStress = height - (minZoneHeight * 2);
+            const availableForRegulated = height - minZoneHeight - Math.min(stressHeight, availableForStress);
+            
+            stressHeight = Math.min(stressHeight, availableForStress);
+            regulatedHeight = Math.min(regulatedHeight, availableForRegulated);
+            opportunityHeight = Math.max(height - stressHeight - regulatedHeight, minZoneHeight);
+            
+            stressHeight = Math.floor(stressHeight);
+            regulatedHeight = Math.floor(regulatedHeight);
+            opportunityHeight = height - stressHeight - regulatedHeight;
+            
+            const stressGradient = stressorPercent <= 40 
+                ? 'linear-gradient(to bottom, #FFFF00 0%, #FFFF33 50%, #FFCC00 100%)'
+                : stressorPercent <= 60
+                ? 'linear-gradient(to bottom, #FFCC00 0%, #FF9900 50%, #FF6600 100%)'
+                : 'linear-gradient(to bottom, #FF4500 0%, #DC143C 50%, #B22222 100%)';
+            
+            const regulatedGradient = 'linear-gradient(to bottom, #87CEEB 0%, #4682B4 50%, #1E90FF 100%)';
+            
+            const opportunityGradient = opportunityPercent <= 50
+                ? 'linear-gradient(to top, #32CD32 0%, #3CB371 50%, #90EE90 100%)'
+                : opportunityPercent <= 65
+                ? 'linear-gradient(to top, #3CB371 0%, #7FFF00 50%, #ADFF2F 100%)'
+                : 'linear-gradient(to top, #7FFF00 0%, #ADFF2F 50%, #FFFF00 100%)';
+            
+            return `
+                <div style="position: absolute; top: 0; left: 0; right: 0; height: ${stressHeight}px; background: ${stressGradient}; border-radius: 8px 8px 0 0;"></div>
+                <div style="position: absolute; top: ${stressHeight}px; left: 0; right: 0; height: ${regulatedHeight}px; background: ${regulatedGradient};"></div>
+                <div style="position: absolute; top: ${stressHeight + regulatedHeight}px; left: 0; right: 0; height: ${opportunityHeight}px; background: ${opportunityGradient}; border-radius: 0 0 8px 8px;"></div>
+            `;
+        }
+        
+        function normalizeTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            date.setMilliseconds(0);
+            return date.toISOString();
+        }
+        
+        function removeDuplicates(entries) {
+            const seen = new Map();
+            const duplicates = [];
+            const unique = [];
+            
+            entries.forEach((entry, index) => {
+                const normalizedTimestamp = normalizeTimestamp(entry.Timestamp);
+                const topic = (entry.Topic || entry['Topic Label'] || '').trim();
+                const lifeArea = (entry['Life Area'] || '').trim();
+                const stressor = (entry['Stressor %'] || entry['Stressors %'] || '').toString().trim();
+                const stabilizer = (entry['Stabilizer %'] || entry['Stabilizers %'] || '').toString().trim();
+                const opportunity = (entry['Opportunity %'] || '').toString().trim();
+                const duplicateKey = `${normalizedTimestamp}|${topic}|${lifeArea}|${stressor}|${stabilizer}|${opportunity}`;
+                
+                if (seen.has(duplicateKey)) {
+                    const originalIndex = seen.get(duplicateKey);
+                    const original = unique[originalIndex];
+                    
+                    const currentDataLength = (entry['Stressor Notes'] || '').length + 
+                                             (entry['Stabilizer Notes'] || '').length + 
+                                             (entry['Opportunity Notes'] || '').length;
+                    const originalDataLength = (original['Stressor Notes'] || '').length + 
+                                               (original['Stabilizer Notes'] || '').length + 
+                                               (original['Opportunity Notes'] || '').length;
+                    
+                    if (currentDataLength > originalDataLength) {
+                        duplicates.push({
+                            timestamp: normalizedTimestamp,
+                            topic: original.Topic || original['Topic Label'] || 'Unnamed',
+                            kept: 'newer (more data)'
+                        });
+                        unique[originalIndex] = entry;
+                    } else {
+                        duplicates.push({
+                            timestamp: normalizedTimestamp,
+                            topic: entry.Topic || entry['Topic Label'] || 'Unnamed',
+                            kept: 'original (more data)'
+                        });
+                    }
+                } else {
+                    seen.set(duplicateKey, unique.length);
+                    unique.push(entry);
+                }
+            });
+            
+            return { unique, duplicates };
+        }
+        
+        function deduplicateData() {
+            const input = document.getElementById('dataInput').value;
+            
+            if (!input.trim()) {
+                alert('Please paste CSV data first!');
+                return;
+            }
+            
+            try {
+                const entries = parseCSV(input);
+                const beforeCount = entries.length;
+                
+                const { unique, duplicates } = removeDuplicates(entries);
+                const afterCount = unique.length;
+                const removedCount = beforeCount - afterCount;
+                
+                if (removedCount === 0) {
+                    alert('No duplicates found! Your data is already clean.');
+                    return;
+                }
+                
+                const headers = Object.keys(unique[0]);
+                let csvOutput = headers.join(',') + '\n';
+                unique.forEach(entry => {
+                    const row = headers.map(h => {
+                        const value = entry[h] || '';
+                        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                            return '"' + value.replace(/"/g, '""') + '"';
+                        }
+                        return value;
+                    }).join(',');
+                    csvOutput += row + '\n';
+                });
+                
+                document.getElementById('dataInput').value = csvOutput;
+                generateTimeline();
+                
+                let message = `✨ Deduplication Complete!\n\n`;
+                message += `Before: ${beforeCount} entries\n`;
+                message += `After: ${afterCount} entries\n`;
+                message += `Removed: ${removedCount} duplicate(s)\n\n`;
+                
+                if (duplicates.length > 0) {
+                    message += `Duplicates removed:\n`;
+                    duplicates.forEach(dup => {
+                        message += `• ${dup.timestamp} - ${dup.topic} (${dup.kept})\n`;
+                    });
+                }
+                
+                alert(message);
+                
+            } catch (error) {
+                alert('Error deduplicating data: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        let globalEntries = []; // Store parsed entries globally
+        
+        function generateTimeline() {
+            const input = document.getElementById('dataInput').value;
+            const timeline = document.getElementById('timeline');
+            
+            if (!input.trim()) {
+                timeline.style.display = 'none';
+                return;
+            }
+            
+            try {
+                let entries = parseCSV(input);
+                
+                const beforeCount = entries.length;
+                const { unique, duplicates } = removeDuplicates(entries);
+                entries = unique;
+                
+                if (duplicates.length > 0) {
+                    console.log(`Auto-removed ${duplicates.length} duplicate(s)`);
+                    duplicates.forEach(dup => {
+                        console.log(`  • ${dup.timestamp} - ${dup.topic}`);
+                    });
+                }
+                
+                entries.reverse();
+                
+                // Store globally for tooltip access
+                globalEntries = entries;
+                
+                const monthGroups = new Map();
+                entries.forEach(entry => {
+                    const date = new Date(entry.Timestamp);
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    const dayKey = String(date.getDate());
+                    
+                    if (!monthGroups.has(monthKey)) {
+                        monthGroups.set(monthKey, {
+                            year: date.getFullYear(),
+                            month: date.getMonth(),
+                            days: new Map()
+                        });
+                    }
+                    
+                    const monthData = monthGroups.get(monthKey);
+                    if (!monthData.days.has(dayKey)) {
+                        monthData.days.set(dayKey, []);
+                    }
+                    monthData.days.get(dayKey).push(entry);
+                });
+                
+                let html = '<div class="timeline-wrapper">';
+                
+                monthGroups.forEach((monthData, monthKey) => {
+                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                                       'July', 'August', 'September', 'October', 'November', 'December'];
+                    const monthName = monthNames[monthData.month];
+                    
+                    html += `<div class="month-group">`;
+                    html += `<div class="month-header">${monthName}</div>`;
+                    html += `<div class="month-days">`;
+                    
+                    const sortedDays = Array.from(monthData.days.keys()).sort((a, b) => parseInt(a) - parseInt(b));
+                    
+                    sortedDays.forEach(dayKey => {
+                        const dayEntries = monthData.days.get(dayKey);
+                        
+                        html += `<div class="day-group">`;
+                        html += `<div class="day-header">${dayKey}</div>`;
+                        html += `<div class="day-entries">`;
+                        
+                        dayEntries.forEach((entry) => {
+                            const globalIndex = entries.indexOf(entry);
+                            const stressorPercent = parseFloat(entry['Stressor %'] || entry['Stressors %']) || 0;
+                            const stabilizerPercent = parseFloat(entry['Stabilizer %'] || entry['Stabilizers %']) || 0;
+                            const opportunityPercent = parseFloat(entry['Opportunity %']) || 0;
+                            
+                            const vizHTML = generateVisualizationHTML(stressorPercent, stabilizerPercent, opportunityPercent);
+                            
+                            html += `
+                                <div class="entry-viz" 
+                                     onmouseenter="showTooltip(event, ${globalIndex})"
+                                     onmouseleave="hideTooltip()"
+                                     data-index="${globalIndex}">
+                                    <button class="delete-btn" onclick="deleteEntry(event, ${globalIndex})" title="Delete this entry">×</button>
+                                    ${vizHTML}
+                                </div>
+                            `;
+                        });
+                        
+                        html += `</div></div>`;
+                    });
+                    
+                    html += `</div></div>`;
+                });
+                
+                html += '</div>';
+                timeline.innerHTML = html;
+                timeline.style.display = 'block';
+                
+            } catch (error) {
+                alert('Error parsing CSV: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function showTooltip(event, index) {
+            const tooltip = document.getElementById('tooltip');
+            const entry = globalEntries[index];
+            
+            if (!entry) {
+                console.error('Entry not found at index:', index);
+                return;
+            }
+            
+            const date = new Date(entry.Timestamp).toLocaleString();
+            
+            let html = `
+                <h4>${entry['Topic Label'] || entry.Topic}</h4>
+                <div class="tooltip-grid">
+                    <p><strong>Date:</strong> ${date}</p>
+                    <p><strong>Life Area:</strong> ${entry['Life Area'] || 'None'}</p>
+                    <p style="grid-column: 1;"><strong>Stressors:</strong> ${entry['Stressor %'] || entry['Stressors %']}%</p>
+                    <p><strong>Stabilizers:</strong> ${entry['Stabilizer %'] || entry['Stabilizers %']}%</p>
+                    <p><strong>Opportunity:</strong> ${entry['Opportunity %']}%</p>
+                </div>
+            `;
+            
+            let notes = [];
+            if (entry['Stressor Notes'] || entry['Stressors Notes']) {
+                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #fbbf24;">Stress:</strong><br>${entry['Stressor Notes'] || entry['Stressors Notes']}</div>`);
+            }
+            if (entry['Stabilizer Notes'] || entry['Stabilizers Notes']) {
+                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #60a5fa;">Stabilizer:</strong><br>${entry['Stabilizer Notes'] || entry['Stabilizers Notes']}</div>`);
+            }
+            if (entry['Opportunity Notes']) {
+                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #4ade80;">Opportunity:</strong><br>${entry['Opportunity Notes']}</div>`);
+            }
+            
+            if (notes.length > 0) {
+                html += `<div class="tooltip-notes">${notes.join('')}</div>`;
+            }
+            
+            tooltip.innerHTML = html;
+            tooltip.classList.add('active');
+        }
+        
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.classList.remove('active');
+        }
+        
+        function clearData() {
+            document.getElementById('dataInput').value = '';
+            document.getElementById('timeline').innerHTML = '';
+            document.getElementById('timeline').style.display = 'none';
+        }
+        
+        async function deleteEntry(event, index) {
+            event.stopPropagation();
+            
+            if (!confirm('Delete this entry?')) {
+                return;
+            }
+            
+            try {
+                const input = document.getElementById('dataInput').value;
+                let entries = parseCSV(input);
+                
+                entries.reverse();
+                const deletedEntry = entries[index];
+                entries.splice(index, 1);
+                entries.reverse();
+                
+                const headers = Object.keys(entries[0]);
+                let csvOutput = headers.join(',') + '\n';
+                entries.forEach(entry => {
+                    const row = headers.map(h => {
+                        const value = entry[h] || '';
+                        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                            return '"' + value.replace(/"/g, '""') + '"';
+                        }
+                        return value;
+                    }).join(',');
+                    csvOutput += row + '\n';
+                });
+                
+                document.getElementById('dataInput').value = csvOutput;
+                generateTimeline();
+                
+                console.log(`Deleted: ${deletedEntry.Timestamp} - ${deletedEntry.Topic || deletedEntry['Topic Label']}`);
+                
+            } catch (error) {
+                alert('Error deleting entry: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function showMergeDialog() {
+            const currentData = document.getElementById('dataInput').value.trim();
+            
+            if (!currentData) {
+                alert('Please download your cloud data first!');
+                return;
+            }
+            
+            document.getElementById('mergeDialog').style.display = 'block';
+            document.getElementById('mergeStatus').style.display = 'none';
+            document.getElementById('mergeInput').value = '';
+        }
+        
+        function closeMergeDialog() {
+            document.getElementById('mergeDialog').style.display = 'none';
+            document.getElementById('mergeInput').value = '';
+        }
+        
+        async function performMerge() {
+            const statusDiv = document.getElementById('mergeStatus');
+            statusDiv.style.display = 'block';
+            
+            try {
+                const currentData = document.getElementById('dataInput').value.trim();
+                const newData = document.getElementById('mergeInput').value.trim();
+                
+                if (!newData) {
+                    statusDiv.innerHTML = '<span style="color: #dc2626;">Error: No new data provided</span>';
+                    return;
+                }
+                
+                const currentEntries = parseCSV(currentData);
+                const newEntries = parseCSV(newData);
+                
+                let debugLog = [];
+                debugLog.push(`📊 Current dataset: ${currentEntries.length} entries`);
+                debugLog.push(`📊 New data: ${newEntries.length} entries`);
+                debugLog.push('---');
+                
+                const existingKeys = new Map();
+                currentEntries.forEach(entry => {
+                    const normalizedTimestamp = normalizeTimestamp(entry.Timestamp);
+                    const topic = (entry.Topic || entry['Topic Label'] || '').trim();
+                    const lifeArea = (entry['Life Area'] || '').trim();
+                    const stressor = (entry['Stressor %'] || entry['Stressors %'] || '').toString().trim();
+                    const stabilizer = (entry['Stabilizer %'] || entry['Stabilizers %'] || '').toString().trim();
+                    const opportunity = (entry['Opportunity %'] || '').toString().trim();
+                    const duplicateKey = `${normalizedTimestamp}|${topic}|${lifeArea}|${stressor}|${stabilizer}|${opportunity}`;
+                    existingKeys.set(duplicateKey, entry);
+                });
+                
+                const trulyNewEntries = [];
+                const duplicates = [];
+                
+                newEntries.forEach(entry => {
+                    const normalizedTimestamp = normalizeTimestamp(entry.Timestamp);
+                    const topic = (entry.Topic || entry['Topic Label'] || '').trim();
+                    const lifeArea = (entry['Life Area'] || '').trim();
+                    const stressor = (entry['Stressor %'] || entry['Stressors %'] || '').toString().trim();
+                    const stabilizer = (entry['Stabilizer %'] || entry['Stabilizers %'] || '').toString().trim();
+                    const opportunity = (entry['Opportunity %'] || '').toString().trim();
+                    const duplicateKey = `${normalizedTimestamp}|${topic}|${lifeArea}|${stressor}|${stabilizer}|${opportunity}`;
+                    
+                    if (existingKeys.has(duplicateKey)) {
+                        duplicates.push(duplicateKey);
+                        debugLog.push(`⏭️  Skipped duplicate: ${entry.Timestamp} - ${entry.Topic || entry['Topic Label'] || 'Unnamed'}`);
+                    } else {
+                        trulyNewEntries.push(entry);
+                        debugLog.push(`✅ Added: ${entry.Timestamp} - ${entry.Topic || entry['Topic Label'] || 'Unnamed'}`);
+                    }
+                });
+                
+                let mergedEntries = [...currentEntries, ...trulyNewEntries];
+                mergedEntries.sort((a, b) => {
+                    const dateA = new Date(a.Timestamp);
+                    const dateB = new Date(b.Timestamp);
+                    return dateB - dateA;
+                });
+                
+                const beforeDedup = mergedEntries.length;
+                const dedupResult = removeDuplicates(mergedEntries);
+                mergedEntries = dedupResult.unique;
+                const removedFromOriginal = beforeDedup - mergedEntries.length - duplicates.length;
+                
+                debugLog.push('---');
+                debugLog.push(`<strong style="color: #059669;">✨ Merge Complete!</strong>`);
+                debugLog.push(`Added: ${trulyNewEntries.length} new entries`);
+                debugLog.push(`Skipped from import: ${duplicates.length} duplicates`);
+                if (removedFromOriginal > 0) {
+                    debugLog.push(`Cleaned from original: ${removedFromOriginal} duplicates`);
+                }
+                debugLog.push(`Total: ${mergedEntries.length} entries`);
+                
+                const headers = Object.keys(mergedEntries[0]);
+                let csvOutput = headers.join(',') + '\n';
+                mergedEntries.forEach(entry => {
+                    const row = headers.map(h => {
+                        const value = entry[h] || '';
+                        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                            return '"' + value.replace(/"/g, '""') + '"';
+                        }
+                        return value;
+                    }).join(',');
+                    csvOutput += row + '\n';
+                });
+                
+                document.getElementById('dataInput').value = csvOutput;
+                statusDiv.innerHTML = debugLog.join('<br>');
+                generateTimeline();
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<span style="color: #dc2626;">❌ Error: ${error.message}</span><br><br>${error.stack}`;
+                console.error(error);
+            }
+        }
+    </script>
 </body>
 </html>
