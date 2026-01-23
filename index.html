@@ -985,17 +985,17 @@
             
             let notes = [];
             if (entry['Stressor Notes'] || entry['Stressors Notes']) {
-                notes.push(`<strong>Stress:</strong> ${entry['Stressor Notes'] || entry['Stressors Notes']}`);
+                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #fbbf24;">Stress:</strong><br>${entry['Stressor Notes'] || entry['Stressors Notes']}</div>`);
             }
             if (entry['Stabilizer Notes'] || entry['Stabilizers Notes']) {
-                notes.push(`<strong>Stabilizer:</strong> ${entry['Stabilizer Notes'] || entry['Stabilizers Notes']}`);
+                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #60a5fa;">Stabilizer:</strong><br>${entry['Stabilizer Notes'] || entry['Stabilizers Notes']}</div>`);
             }
             if (entry['Opportunity Notes']) {
-                notes.push(`<strong>Opportunity:</strong> ${entry['Opportunity Notes']}`);
+                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #4ade80;">Opportunity:</strong><br>${entry['Opportunity Notes']}</div>`);
             }
             
             if (notes.length > 0) {
-                html += `<div class="tooltip-notes">${notes.join(' | ')}</div>`;
+                html += `<div class="tooltip-notes">${notes.join('')}</div>`;
             }
             
             tooltip.innerHTML = html;
