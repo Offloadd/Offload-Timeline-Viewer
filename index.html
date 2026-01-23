@@ -3,431 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offload Timeline Viewer - DEBUG MODE</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            padding: 20px;
-            background: #f3f4f6;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        h1 {
-            margin-bottom: 20px;
-            color: #1f2937;
-        }
-        
-        textarea {
-            width: 100%;
-            height: 150px;
-            padding: 12px;
-            border: 2px solid #d1d5db;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            margin-bottom: 12px;
-            resize: vertical;
-        }
-        
-        button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 20px;
-            margin-right: 12px;
-        }
-        
-        button:hover {
-            background: #1d4ed8;
-        }
-        
-        .debug-panel {
-            background: #fef2f2;
-            border: 2px solid #dc2626;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-        
-        .debug-panel h3 {
-            margin-bottom: 12px;
-            color: #991b1b;
-        }
-        
-        .debug-log {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            max-height: 600px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            background: white;
-            padding: 12px;
-            border-radius: 4px;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .console-panel {
-            background: #f0fdf4;
-            border: 2px solid #059669;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-        
-        .console-panel h3 {
-            margin-bottom: 12px;
-            color: #065f46;
-        }
-        
-        .success {
-            color: #059669;
-        }
-        
-        .error {
-            color: #dc2626;
-        }
-        
-        .warning {
-            color: #f59e0b;
-        }
-        
-        .info {
-            color: #0891b2;
-        }
-    </style>
+    <title>Offload Timeline Viewer</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Offload Timeline Viewer - DEBUG MODE</h1>
+        <h1>📊 Offload Timeline Viewer</h1>
         
-        <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-            <h3 style="margin-bottom: 8px; color: #92400e;">Debug Mode Active</h3>
-            <p style="color: #78350f;">This version includes detailed CSV parsing diagnostics to identify truncation issues.</p>
+        <div id="authContainer" class="auth-container">
+            <h3>Sign In</h3>
+            <div id="authForm" class="auth-form">
+                <input type="email" id="emailInput" placeholder="Email">
+                <input type="password" id="passwordInput" placeholder="Password">
+                <button onclick="signIn()">Sign In</button>
+                <button onclick="signUp()" style="background: #059669;">Create Account</button>
+            </div>
+            <div id="userInfo" class="user-info" style="display: none;">
+                <span id="userEmail"></span>
+                <button onclick="signOut()" style="background: #dc2626; margin-left: 12px;">Sign Out</button>
+            </div>
         </div>
         
-        <div class="console-panel" id="consolePanel">
-            <h3>📋 Console Log</h3>
-            <div class="debug-log" id="consoleLog"></div>
-            <button onclick="clearConsole()" style="margin-top: 12px; padding: 6px 12px; font-size: 14px; background: #6b7280;">Clear Console</button>
-        </div>
-        
-        <div class="debug-panel">
-            <h3>🔬 CSV Parsing Debug</h3>
-            <div class="debug-log" id="debugLog"></div>
-            <button onclick="clearDebugLog()" style="margin-top: 12px; padding: 6px 12px; font-size: 14px; background: #6b7280;">Clear Debug</button>
-        </div>
-        
-        <textarea id="dataInput" placeholder="Paste your CSV data here..."></textarea>
-        
-        <div style="margin-bottom: 20px;">
-            <button onclick="testParse()">🧪 Test Parse CSV</button>
-            <button onclick="deepInspect()" style="background: #7c3aed;">🔍 Deep Inspect First Entry</button>
+        <div class="app-content" id="appContent">
+            <div class="instructions">
+                <h3>How to use:</h3>
+                <p>1. In your Offload app, copy your CSV data<br>
+                2. Paste the CSV data into the box below<br>
+                3. Click "Generate Timeline" to visualize your data<br>
+                4. Click "Save Dataset" to save it to the cloud<br>
+                5. Use "Load Dataset" to load previously saved datasets<br>
+                6. Hover over any slice to see details</p>
+            </div>
+            
+            <div id="timeline"></div>
+            
+            <div id="mergeDialog" style="display: none; background: #f0f9ff; border: 2px solid #0891b2; border-radius: 8px; padding: 16px; margin-top: 20px; margin-bottom: 20px;">
+                <h3 style="margin-bottom: 12px; color: #0891b2;">Import & Merge New Data</h3>
+                <p style="margin-bottom: 12px; font-size: 14px;">Paste new CSV data below. It will be merged with your cloud dataset.</p>
+                <textarea id="mergeInput" placeholder="Paste new CSV data here..." style="width: 100%; height: 120px; padding: 12px; border: 2px solid #0891b2; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; margin-bottom: 12px;"></textarea>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="performMerge()" style="background: #0891b2;">Merge & Upload</button>
+                    <button onclick="closeMergeDialog()" style="background: #6b7280;">Cancel</button>
+                </div>
+                <div id="mergeStatus" style="margin-top: 12px; padding: 12px; background: white; border-radius: 6px; font-size: 13px; font-family: 'Courier New', monospace; display: none; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+            
+            <textarea id="dataInput" placeholder="Paste your CSV data here..."></textarea>
+            
+            <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+                <button onclick="generateTimeline()">Generate Timeline</button>
+                <button onclick="deduplicateData()" style="background: #f59e0b;">🧹 Remove Duplicates</button>
+                <button onclick="clearData()" style="background: #dc2626;">🗑️ Clear Data</button>
+                <button onclick="showMergeDialog()" style="background: #0891b2;">🔄 Import & Merge</button>
+                <input type="text" id="datasetName" placeholder="Dataset name (e.g., 'Jan 2026 Data')" style="flex: 1; min-width: 250px; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px;">
+                <button onclick="saveDataset()" style="background: #059669;">💾 Save Dataset</button>
+                <button onclick="showLoadMenu()" style="background: #7c3aed;">📂 Load Dataset</button>
+            </div>
+            
+            <div id="loadMenu" style="display: none; background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                <h3 style="margin-bottom: 12px;">Saved Datasets:</h3>
+                <div id="datasetList"></div>
+            </div>
+            
+            <div id="debugPanel" style="background: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 16px; margin-bottom: 20px; display: none;">
+                <h3 style="margin-bottom: 8px; color: #991b1b;">Debug Information</h3>
+                <div id="debugLog" style="font-family: 'Courier New', monospace; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap;"></div>
+                <button onclick="document.getElementById('debugPanel').style.display='none'" style="margin-top: 8px; padding: 6px 12px; font-size: 14px; background: #6b7280;">Close</button>
+            </div>
         </div>
     </div>
     
-    <script>
-        // Intercept console.log, console.error, etc.
-        const consoleLog = document.getElementById('consoleLog');
-        const originalLog = console.log;
-        const originalError = console.error;
-        const originalWarn = console.warn;
-        const originalInfo = console.info;
-        
-        function addToConsole(message, type = 'log') {
-            const timestamp = new Date().toLocaleTimeString();
-            const color = {
-                'log': '#1f2937',
-                'error': '#dc2626',
-                'warn': '#f59e0b',
-                'info': '#0891b2'
-            }[type];
-            
-            const line = document.createElement('div');
-            line.style.color = color;
-            line.textContent = `[${timestamp}] ${message}`;
-            consoleLog.appendChild(line);
-            consoleLog.scrollTop = consoleLog.scrollHeight;
-        }
-        
-        console.log = function(...args) {
-            originalLog.apply(console, args);
-            addToConsole(args.join(' '), 'log');
-        };
-        
-        console.error = function(...args) {
-            originalError.apply(console, args);
-            addToConsole('ERROR: ' + args.join(' '), 'error');
-        };
-        
-        console.warn = function(...args) {
-            originalWarn.apply(console, args);
-            addToConsole('WARN: ' + args.join(' '), 'warn');
-        };
-        
-        console.info = function(...args) {
-            originalInfo.apply(console, args);
-            addToConsole('INFO: ' + args.join(' '), 'info');
-        };
-        
-        function clearConsole() {
-            consoleLog.innerHTML = '';
-            console.log('Console cleared');
-        }
-        
-        function clearDebugLog() {
-            document.getElementById('debugLog').innerHTML = '';
-        }
-        
-        function debugLog(message, type = 'info') {
-            const debugLogEl = document.getElementById('debugLog');
-            const className = type;
-            const line = document.createElement('div');
-            line.className = className;
-            line.textContent = message;
-            debugLogEl.appendChild(line);
-            debugLogEl.scrollTop = debugLogEl.scrollHeight;
-        }
-        
-        // Enhanced CSV Parser with detailed logging
-        function parseCSV(csv) {
-            debugLog('=== STARTING CSV PARSE ===', 'info');
-            debugLog(`Total CSV length: ${csv.length} characters`, 'info');
-            
-            const lines = [];
-            let current = '';
-            let inQuotes = false;
-            let lineNum = 0;
-            
-            for (let i = 0; i < csv.length; i++) {
-                const char = csv[i];
-                const nextChar = csv[i + 1];
-                
-                if (char === '"') {
-                    if (inQuotes && nextChar === '"') {
-                        current += '"';
-                        i++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (char === '\n' && !inQuotes) {
-                    if (current.trim()) {
-                        lines.push(current);
-                        lineNum++;
-                    }
-                    current = '';
-                } else if (char === '\r' && nextChar === '\n' && !inQuotes) {
-                    if (current.trim()) {
-                        lines.push(current);
-                        lineNum++;
-                    }
-                    current = '';
-                    i++;
-                } else {
-                    current += char;
-                }
-            }
-            if (current.trim()) {
-                lines.push(current);
-                lineNum++;
-            }
-            
-            debugLog(`Parsed ${lines.length} lines`, 'success');
-            
-            const headers = parseCSVLine(lines[0], 0);
-            debugLog(`Headers: ${headers.join(', ')}`, 'info');
-            
-            const entries = [];
-            for (let i = 1; i < lines.length; i++) {
-                debugLog(`\n--- Parsing line ${i} ---`, 'info');
-                const values = parseCSVLine(lines[i], i);
-                const entry = {};
-                headers.forEach((header, index) => {
-                    entry[header] = values[index] || '';
-                    if (header.includes('Notes')) {
-                        debugLog(`  ${header}: ${(values[index] || '').length} chars`, 'info');
-                    }
-                });
-                entries.push(entry);
-                
-                // Deep inspection of first data entry
-                if (i === 1) {
-                    debugLog('\n=== FIRST ENTRY DEEP INSPECTION ===', 'warning');
-                    debugLog(`Stressor Notes length: ${(entry['Stressor Notes'] || '').length}`, 'warning');
-                    debugLog(`Stabilizer Notes length: ${(entry['Stabilizer Notes'] || '').length}`, 'warning');
-                    debugLog(`Opportunity Notes length: ${(entry['Opportunity Notes'] || '').length}`, 'warning');
-                    
-                    if (entry['Stabilizer Notes']) {
-                        debugLog(`\nStabilizer Notes content:\n"${entry['Stabilizer Notes']}"`, 'warning');
-                    }
-                    if (entry['Opportunity Notes']) {
-                        debugLog(`\nOpportunity Notes content:\n"${entry['Opportunity Notes']}"`, 'warning');
-                    }
-                }
-            }
-            
-            debugLog(`\n=== PARSE COMPLETE ===`, 'success');
-            debugLog(`Total entries parsed: ${entries.length}`, 'success');
-            
-            return entries;
-        }
-        
-        function parseCSVLine(line, lineNum) {
-            const values = [];
-            let current = '';
-            let inQuotes = false;
-            let charPos = 0;
-            
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                const nextChar = line[i + 1];
-                charPos++;
-                
-                if (char === '"') {
-                    if (inQuotes && nextChar === '"') {
-                        current += '"';
-                        i++;
-                        charPos++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (char === ',' && !inQuotes) {
-                    values.push(current.trim());
-                    debugLog(`    Field ${values.length}: ${current.trim().length} chars`, 'info');
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            values.push(current.trim());
-            debugLog(`    Field ${values.length}: ${current.trim().length} chars`, 'info');
-            
-            return values;
-        }
-        
-        function testParse() {
-            clearDebugLog();
-            const input = document.getElementById('dataInput').value;
-            
-            if (!input.trim()) {
-                debugLog('ERROR: No data to parse!', 'error');
-                alert('Please paste CSV data first!');
-                return;
-            }
-            
-            console.log('Starting CSV parse test...');
-            
-            try {
-                const entries = parseCSV(input);
-                
-                console.log(`Successfully parsed ${entries.length} entries`);
-                
-                if (entries.length > 0) {
-                    console.log('\nFirst entry field lengths:');
-                    Object.keys(entries[0]).forEach(key => {
-                        if (key.includes('Notes')) {
-                            console.log(`  ${key}: ${entries[0][key].length} characters`);
-                        }
-                    });
-                }
-                
-                debugLog('\n✅ Parse test completed successfully!', 'success');
-                
-            } catch (error) {
-                debugLog(`\n❌ ERROR: ${error.message}`, 'error');
-                debugLog(error.stack, 'error');
-                console.error('Parse error:', error);
-            }
-        }
-        
-        function deepInspect() {
-            clearDebugLog();
-            const input = document.getElementById('dataInput').value;
-            
-            if (!input.trim()) {
-                debugLog('ERROR: No data to inspect!', 'error');
-                alert('Please paste CSV data first!');
-                return;
-            }
-            
-            try {
-                const entries = parseCSV(input);
-                
-                if (entries.length === 0) {
-                    debugLog('No entries found!', 'error');
-                    return;
-                }
-                
-                const entry = entries[0];
-                
-                debugLog('\n=== DEEP INSPECTION OF FIRST ENTRY ===', 'warning');
-                debugLog('\nAll fields:', 'info');
-                
-                Object.keys(entry).forEach(key => {
-                    const value = entry[key];
-                    debugLog(`\n${key}:`, 'info');
-                    debugLog(`  Length: ${value.length} characters`, 'info');
-                    if (key.includes('Notes') && value.length > 0) {
-                        debugLog(`  First 50 chars: "${value.substring(0, 50)}..."`, 'info');
-                        debugLog(`  Last 50 chars: "...${value.substring(value.length - 50)}"`, 'info');
-                        debugLog(`  Full content:\n${value}`, 'warning');
-                    } else if (value.length < 100) {
-                        debugLog(`  Value: "${value}"`, 'info');
-                    }
-                });
-                
-                // Check for any truncation patterns
-                debugLog('\n=== TRUNCATION CHECK ===', 'warning');
-                const stressorLen = (entry['Stressor Notes'] || '').length;
-                const stabilizerLen = (entry['Stabilizer Notes'] || '').length;
-                const opportunityLen = (entry['Opportunity Notes'] || '').length;
-                
-                debugLog(`Stressor Notes: ${stressorLen} chars`, stressorLen > 0 ? 'success' : 'info');
-                debugLog(`Stabilizer Notes: ${stabilizerLen} chars`, stabilizerLen > 0 ? 'success' : 'info');
-                debugLog(`Opportunity Notes: ${opportunityLen} chars`, opportunityLen > 0 ? 'success' : 'info');
-                
-                if (stabilizerLen > 0 && stabilizerLen < 200) {
-                    debugLog(`⚠️  WARNING: Stabilizer Notes seems short (${stabilizerLen} chars)`, 'error');
-                }
-                
-                // Check if Opportunity contains what should be in Stabilizer
-                if (entry['Opportunity Notes'] && entry['Stabilizer Notes']) {
-                    const stabEnd = entry['Stabilizer Notes'].slice(-20);
-                    const oppStart = entry['Opportunity Notes'].slice(0, 20);
-                    debugLog(`\nStabilizer Notes ends with: "${stabEnd}"`, 'info');
-                    debugLog(`Opportunity Notes starts with: "${oppStart}"`, 'info');
-                }
-                
-                console.log('Deep inspection complete - check debug panel for details');
-                
-            } catch (error) {
-                debugLog(`\n❌ ERROR: ${error.message}`, 'error');
-                debugLog(error.stack, 'error');
-                console.error('Inspection error:', error);
-            }
-        }
-        
-        // Log on page load
-        console.log('Debug mode initialized');
-        console.log('Paste your CSV data and click "Test Parse CSV" to begin debugging');
-    </script>
+    <div id="tooltip" class="tooltip"></div>
+    
+    <script type="module" src="app.js"></script>
 </body>
 </html>
