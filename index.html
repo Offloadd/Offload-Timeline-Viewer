@@ -980,6 +980,11 @@
             
             const date = new Date(entry.Timestamp).toLocaleString();
             
+            // Debug: Check what we actually have
+            const stressorNotes = entry['Stressor Notes'] || entry['Stressors Notes'] || '';
+            const stabilizerNotes = entry['Stabilizer Notes'] || entry['Stabilizers Notes'] || '';
+            const opportunityNotes = entry['Opportunity Notes'] || '';
+            
             let html = `
                 <h4>${entry['Topic Label'] || entry.Topic}</h4>
                 <div class="tooltip-grid">
@@ -989,17 +994,23 @@
                     <p><strong>Stabilizers:</strong> ${entry['Stabilizer %'] || entry['Stabilizers %']}%</p>
                     <p><strong>Opportunity:</strong> ${entry['Opportunity %']}%</p>
                 </div>
+                <div style="margin-top: 12px; padding: 8px; background: #333; font-size: 10px; font-family: monospace;">
+                    DEBUG:<br>
+                    Stressor length: ${stressorNotes.length}<br>
+                    Stabilizer length: ${stabilizerNotes.length}<br>
+                    Opportunity length: ${opportunityNotes.length}
+                </div>
             `;
             
             let notes = [];
-            if (entry['Stressor Notes'] || entry['Stressors Notes']) {
-                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #fbbf24;">Stress:</strong><br>${entry['Stressor Notes'] || entry['Stressors Notes']}</div>`);
+            if (stressorNotes) {
+                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #fbbf24;">Stress:</strong><br>${stressorNotes}</div>`);
             }
-            if (entry['Stabilizer Notes'] || entry['Stabilizers Notes']) {
-                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #60a5fa;">Stabilizer:</strong><br>${entry['Stabilizer Notes'] || entry['Stabilizers Notes']}</div>`);
+            if (stabilizerNotes) {
+                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #60a5fa;">Stabilizer:</strong><br>${stabilizerNotes}</div>`);
             }
-            if (entry['Opportunity Notes']) {
-                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #4ade80;">Opportunity:</strong><br>${entry['Opportunity Notes']}</div>`);
+            if (opportunityNotes) {
+                notes.push(`<div style="margin-bottom: 8px;"><strong style="color: #4ade80;">Opportunity:</strong><br>${opportunityNotes}</div>`);
             }
             
             if (notes.length > 0) {
