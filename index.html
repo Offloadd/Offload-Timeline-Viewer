@@ -1002,6 +1002,73 @@ window.performMerge = async function() {
     }
 };
 
+
+// ORGANIZED TOOLTIP - Split notes into 3 sections with colors
+window.showTooltip = function(event, index) {
+    const tooltip = document.getElementById('tooltip');
+    const entry = globalEntries[index];
+    if (!entry) return;
+    
+    const date = new Date(entry.Timestamp).toLocaleString();
+    const topic = entry.Topic || 'Entry';
+    const lifeArea = entry['Life Area'] || 'None';
+    
+    let html = `
+        <h4>${topic || 'Entry'}</h4>
+        <div class="tooltip-grid">
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Life Area:</strong> ${lifeArea}</p>
+            <p style="grid-column: 1;"><strong>Stressors:</strong> ${entry['Stressor %']}%</p>
+            <p><strong>Stabilizers:</strong> ${entry['Stabilizer %']}%</p>
+            <p><strong>Opportunity:</strong> ${entry['Opportunity %']}%</p>
+        </div>
+    `;
+    
+    // Split notes by "," pattern
+    const parts = entry.allNotes.split('","');
+    
+    // Clean each part
+    const stressorNotes = parts[0] ? parts[0].replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+    const stabilizerNotes = parts[1] ? parts[1].replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+    const opportunityNotes = parts[2] ? parts[2].replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+    
+    // Display organized notes
+    let notesHTML = '<div class="tooltip-notes" style="margin-top: 12px;">';
+    
+    if (stressorNotes) {
+        notesHTML += `
+            <div style="margin-bottom: 12px;">
+                <strong style="color: #fbbf24; font-size: 15px;">🔴 Stressor:</strong>
+                <div style="margin-top: 4px; white-space: pre-wrap; color: #d1d5db;">${stressorNotes}</div>
+            </div>
+        `;
+    }
+    
+    if (stabilizerNotes) {
+        notesHTML += `
+            <div style="margin-bottom: 12px;">
+                <strong style="color: #60a5fa; font-size: 15px;">🔵 Stabilizer:</strong>
+                <div style="margin-top: 4px; white-space: pre-wrap; color: #d1d5db;">${stabilizerNotes}</div>
+            </div>
+        `;
+    }
+    
+    if (opportunityNotes) {
+        notesHTML += `
+            <div style="margin-bottom: 12px;">
+                <strong style="color: #4ade80; font-size: 15px;">🟢 Opportunity:</strong>
+                <div style="margin-top: 4px; white-space: pre-wrap; color: #d1d5db;">${opportunityNotes}</div>
+            </div>
+        `;
+    }
+    
+    notesHTML += '</div>';
+    html += notesHTML;
+    
+    tooltip.innerHTML = html;
+    tooltip.classList.add('active');
+};
+
     </script>
 </body>
 </html>
