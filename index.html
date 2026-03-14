@@ -227,21 +227,19 @@ button:hover {
 
 .tooltip {
     display: none;
-    position: absolute;
+    position: fixed;
     background: rgba(0, 0, 0, 0.95);
     color: white;
     padding: 20px;
     border-radius: 8px;
     font-size: 15px;
-    width: calc(100% - 48px);
-    max-width: none;
-    max-height: 400px;
+    width: 420px;
+    max-width: 90vw;
+    max-height: 70vh;
     overflow-y: auto;
     z-index: 1000;
     pointer-events: auto;
-    top: 260px;
-    left: 24px;
-    right: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 
 .tooltip.active {
@@ -864,8 +862,7 @@ window.generateTimeline = function() {
                     
                     html += `
                         <div class="entry-viz" 
-                             onmouseenter="showTooltip(event, ${globalIndex})"
-                             onmouseleave="hideTooltip()"
+                             onclick="toggleTooltip(event, ${globalIndex})"
                              data-index="${globalIndex}">
                             <button class="delete-btn" onclick="deleteEntry(event, ${globalIndex})" title="Delete this entry">×</button>
                             ${vizHTML}
@@ -955,7 +952,28 @@ window.showTooltip = function(event, index) {
     html += notesHTML;
     
     tooltip.innerHTML = html;
+    tooltip.dataset.activeIndex = index;
+
+    // Position near cursor, keeping on screen
+    const x = event.clientX + 12;
+    const y = event.clientY + 12;
+    tooltip.style.left = Math.min(x, window.innerWidth - 440) + 'px';
+    tooltip.style.top = Math.min(y, window.innerHeight - 300) + 'px';
+
     tooltip.classList.add('active');
+};
+
+// Toggle tooltip open/closed on bar click
+window.toggleTooltip = function(event, index) {
+    event.stopPropagation();
+    const tooltip = document.getElementById('tooltip');
+    const isOpen = tooltip.classList.contains('active');
+    const currentIndex = parseInt(tooltip.dataset.activeIndex);
+    if (isOpen && currentIndex === index) {
+        hideTooltip();
+    } else {
+        showTooltip(event, index);
+    }
 };
 
 // NEW: Toggle mode function
@@ -972,13 +990,23 @@ window.toggleMode = function(event, index) {
     document.getElementById('dataInput').value = csv;
     generateTimeline();
     
-    // Re-show tooltip at same index (generateTimeline rebuilds the DOM, closing it)
+    // Re-show tooltip at same index with updated state
     showTooltip(event, index);
 };
 
 window.hideTooltip = function() {
-    document.getElementById('tooltip').classList.remove('active');
+    const tooltip = document.getElementById('tooltip');
+    tooltip.classList.remove('active');
+    tooltip.dataset.activeIndex = '';
 };
+
+// Dismiss tooltip when clicking outside of it
+document.addEventListener('click', function(event) {
+    const tooltip = document.getElementById('tooltip');
+    if (tooltip.classList.contains('active') && !tooltip.contains(event.target)) {
+        hideTooltip();
+    }
+});
 
 window.clearData = function() {
     document.getElementById('dataInput').value = '';
