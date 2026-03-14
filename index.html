@@ -972,8 +972,8 @@ window.toggleMode = function(event, index) {
     document.getElementById('dataInput').value = csv;
     generateTimeline();
     
-    // Close tooltip
-    hideTooltip();
+    // Re-show tooltip at same index (generateTimeline rebuilds the DOM, closing it)
+    showTooltip(event, index);
 };
 
 window.hideTooltip = function() {
