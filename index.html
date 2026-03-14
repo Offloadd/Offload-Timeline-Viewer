@@ -300,34 +300,14 @@ button:hover {
 </head>
 <body>
     <div class="container">
-        <h1>📊 Offload Timeline Viewer</h1>
-        
-        <div id="authContainer" class="auth-container">
-            <h3>Sign In</h3>
-            <div id="authForm" class="auth-form">
-                <input type="email" id="emailInput" placeholder="Email">
-                <input type="password" id="passwordInput" placeholder="Password">
-                <button onclick="signIn()">Sign In</button>
-                <button onclick="signUp()" style="background: #059669;">Create Account</button>
-            </div>
-            <div id="userInfo" class="user-info" style="display: none;">
-                <span id="userEmail"></span>
-                <button onclick="signOut()" style="background: #dc2626; margin-left: 12px;">Sign Out</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin: 0;">📊 Offload Timeline Viewer</h1>
+            <div style="font-size: 14px; color: #6b7280;">
+                Questions/Comments: <a href="mailto:offloadapptool@gmail.com" style="color: #2563eb; text-decoration: none;">offloadapptool@gmail.com</a>
             </div>
         </div>
         
         <div class="app-content" id="appContent">
-            <div class="instructions">
-                <h3>How to use:</h3>
-                <p>1. In your Offload app, copy your CSV data<br>
-                2. Paste the CSV data into the box below<br>
-                3. Click "Generate Timeline" to visualize your data<br>
-                4. Click "Save Dataset" to save it to the cloud<br>
-                5. Use "Load Dataset" to load previously saved datasets<br>
-                6. Hover over any slice to see details<br>
-                7. Toggle between Activation (🔥 warm stress) and Distress (💜 cold stress) modes</p>
-            </div>
-            
             <div id="timeline"></div>
             
             <div id="mergeDialog" style="display: none; background: #f0f9ff; border: 2px solid #0891b2; border-radius: 8px; padding: 16px; margin-top: 20px; margin-bottom: 20px;">
@@ -341,7 +321,16 @@ button:hover {
                 <div id="mergeStatus" style="margin-top: 12px; padding: 12px; background: white; border-radius: 6px; font-size: 13px; font-family: 'Courier New', monospace; display: none; max-height: 200px; overflow-y: auto;"></div>
             </div>
             
-            <textarea id="dataInput" placeholder="Paste your CSV data here..."></textarea>
+            <textarea id="dataInput" placeholder="📋 Paste your Offload CSV data here...
+
+Instructions:
+1. Copy CSV data from your Offload app
+2. Paste it here
+3. Click 'Generate Timeline' to visualize
+4. Click 'Save Dataset' to save to cloud
+5. Use 'Load Dataset' to load saved data
+6. Hover over bars to see details
+7. Click mode button to toggle between Activation (🔥 warm stress) and Distress (💜 cold stress)"></textarea>
             
             <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
                 <button onclick="generateTimeline()">Generate Timeline</button>
@@ -362,6 +351,20 @@ button:hover {
                 <h3 style="margin-bottom: 8px; color: #991b1b;">Debug Information</h3>
                 <div id="debugLog" style="font-family: 'Courier New', monospace; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap;"></div>
                 <button onclick="document.getElementById('debugPanel').style.display='none'" style="margin-top: 8px; padding: 6px 12px; font-size: 14px; background: #6b7280;">Close</button>
+            </div>
+        </div>
+        
+        <div id="authContainer" class="auth-container">
+            <h3>Sign In</h3>
+            <div id="authForm" class="auth-form">
+                <input type="email" id="emailInput" placeholder="Email">
+                <input type="password" id="passwordInput" placeholder="Password">
+                <button onclick="signIn()">Sign In</button>
+                <button onclick="signUp()" style="background: #059669;">Create Account</button>
+            </div>
+            <div id="userInfo" class="user-info" style="display: none;">
+                <span id="userEmail"></span>
+                <button onclick="signOut()" style="background: #dc2626; margin-left: 12px;">Sign Out</button>
             </div>
         </div>
     </div>
@@ -397,7 +400,6 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('userInfo').style.display = 'block';
         document.getElementById('userEmail').textContent = user.email;
         document.getElementById('appContent').style.display = 'block';
-        document.querySelector('.instructions').style.display = 'block';
     } else {
         document.getElementById('authForm').style.display = 'flex';
         document.getElementById('userInfo').style.display = 'none';
