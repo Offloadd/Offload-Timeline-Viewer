@@ -968,7 +968,7 @@ window.toggleMode = function(event, index) {
     entry.Topic = currentMode === 'distress' ? 'activation' : 'distress';
     
     // Update CSV and regenerate timeline
-    const csv = entriesToCSV(globalEntries.slice().reverse());
+    const csv = entriesToCSV(globalEntries.slice());
     document.getElementById('dataInput').value = csv;
     generateTimeline();
     
