@@ -789,6 +789,7 @@ function generateVisualizationHTML(stressorPercent, stabilizerPercent, opportuni
 }
 
 let globalEntries = [];
+let modeOverrides = new Map(); // keyed by Timestamp, value: 'distress' or 'activation'
 
 window.generateTimeline = function() {
     const input = document.getElementById('dataInput').value;
@@ -856,8 +857,9 @@ window.generateTimeline = function() {
                     const stressorPercent = parseFloat(entry['Stressor %']) || 0;
                     const stabilizerPercent = parseFloat(entry['Stabilizer %']) || 0;
                     const opportunityPercent = parseFloat(entry['Opportunity %']) || 0;
-                    // UPDATED: Detect mode from Topic field
-                    const mode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
+                    // Detect mode: check override map first, then fall back to Topic field
+                    const topicMode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
+                    const mode = modeOverrides.has(entry.Timestamp) ? modeOverrides.get(entry.Timestamp) : topicMode;
                     const vizHTML = generateVisualizationHTML(stressorPercent, stabilizerPercent, opportunityPercent, mode);
                     
                     html += `
@@ -893,8 +895,9 @@ window.showTooltip = function(event, index) {
     const topic = entry.Topic || 'Entry';
     const lifeArea = entry['Life Area'] || 'None';
     
-    // Detect current mode
-    const mode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
+    // Detect current mode from override map or Topic field
+    const topicMode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
+    const mode = modeOverrides.has(entry.Timestamp) ? modeOverrides.get(entry.Timestamp) : topicMode;
     const isDistress = mode === 'distress';
     
     let html = `
@@ -963,7 +966,6 @@ window.showTooltip = function(event, index) {
     tooltip.classList.add('active');
 };
 
-// Toggle tooltip open/closed on bar click
 window.toggleTooltip = function(event, index) {
     event.stopPropagation();
     const tooltip = document.getElementById('tooltip');
@@ -980,17 +982,19 @@ window.toggleTooltip = function(event, index) {
 window.toggleMode = function(event, index) {
     event.stopPropagation();
     const entry = globalEntries[index];
-    const currentMode = (entry.Topic || '').toLowerCase().trim();
     
-    // Toggle between 'distress' and 'activation'
-    entry.Topic = currentMode === 'distress' ? 'activation' : 'distress';
+    // Get current effective mode
+    const topicMode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
+    const currentMode = modeOverrides.has(entry.Timestamp) ? modeOverrides.get(entry.Timestamp) : topicMode;
     
-    // Update CSV and regenerate timeline
-    const csv = entriesToCSV(globalEntries.slice());
-    document.getElementById('dataInput').value = csv;
+    // Toggle and store in override map — never touch Topic
+    const newMode = currentMode === 'distress' ? 'activation' : 'distress';
+    modeOverrides.set(entry.Timestamp, newMode);
+    
+    // Regenerate timeline (preserves order, doesn't touch CSV)
     generateTimeline();
     
-    // Re-show tooltip at same index with updated state
+    // Re-show tooltip with updated mode
     showTooltip(event, index);
 };
 
@@ -1000,7 +1004,6 @@ window.hideTooltip = function() {
     tooltip.dataset.activeIndex = '';
 };
 
-// Dismiss tooltip when clicking outside of it
 document.addEventListener('click', function(event) {
     const tooltip = document.getElementById('tooltip');
     if (tooltip.classList.contains('active') && !tooltip.contains(event.target)) {
