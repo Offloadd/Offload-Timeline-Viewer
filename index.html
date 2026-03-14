@@ -238,7 +238,7 @@ button:hover {
     max-height: 400px;
     overflow-y: auto;
     z-index: 1000;
-    pointer-events: none;
+    pointer-events: auto;
     top: 260px;
     left: 24px;
     right: 24px;
@@ -276,6 +276,26 @@ button:hover {
 .app-content {
     display: none;
 }
+
+.mode-toggle-btn {
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 10px;
+}
+
+.mode-activation {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+.mode-distress {
+    background: #4c1d95;
+    color: #c4b5fd;
+}
     </style>
 </head>
 <body>
@@ -304,7 +324,8 @@ button:hover {
                 3. Click "Generate Timeline" to visualize your data<br>
                 4. Click "Save Dataset" to save it to the cloud<br>
                 5. Use "Load Dataset" to load previously saved datasets<br>
-                6. Hover over any slice to see details</p>
+                6. Hover over any slice to see details<br>
+                7. Toggle between Activation (🔥 warm stress) and Distress (💜 cold stress) modes</p>
             </div>
             
             <div id="timeline"></div>
@@ -422,7 +443,7 @@ function showDebug(message) {
     debugLog.textContent += message + '\n';
 }
 
-// TIMESTAMP-BASED CSV PARSER - No more comma/quote issues!
+// TIMESTAMP-BASED CSV PARSER
 function parseCSV(csvText) {
     const lines = csvText.split('\n');
     const entries = [];
@@ -443,7 +464,6 @@ function parseCSV(csvText) {
             const restOfLine = line.substring(timestamp.length + 1);
             const parts = restOfLine.split(',');
             
-            // Clean up notes - remove surrounding quotes and unescape double quotes
             let allNotes = parts.slice(6).join(',')
                 .replace(/^"|"$/g, '')
                 .replace(/""/g, '"')
@@ -471,11 +491,10 @@ function parseCSV(csvText) {
     return entries;
 }
 
-// Convert entries back to CSV format for saving
 function entriesToCSV(entries) {
     let csv = 'Timestamp,Topic,Life Area,Hijacking,Stressor %,Stabilizer %,Opportunity %,Notes\n';
     entries.forEach(entry => {
-        const notes = entry.allNotes.replace(/"/g, '""'); // Escape quotes
+        const notes = entry.allNotes.replace(/"/g, '""');
         csv += `${entry.Timestamp},${entry.Topic},${entry['Life Area']},${entry.Hijacking},${entry['Stressor %']},${entry['Stabilizer %']},${entry['Opportunity %']},"${notes}"\n`;
     });
     return csv;
@@ -703,7 +722,8 @@ window.deduplicateData = function() {
     }
 };
 
-function generateVisualizationHTML(stressorPercent, stabilizerPercent, opportunityPercent) {
+// UPDATED: Generate visualization with mode detection
+function generateVisualizationHTML(stressorPercent, stabilizerPercent, opportunityPercent, mode) {
     const height = 274;
     const minZoneHeight = 30;
     
@@ -729,11 +749,15 @@ function generateVisualizationHTML(stressorPercent, stabilizerPercent, opportuni
     regulatedHeight = Math.floor(regulatedHeight);
     opportunityHeight = height - stressHeight - regulatedHeight;
     
-    const stressGradient = stressorPercent <= 40 
-        ? 'linear-gradient(to bottom, #FFFF00 0%, #FFFF33 50%, #FFCC00 100%)'
-        : stressorPercent <= 60
-        ? 'linear-gradient(to bottom, #FFCC00 0%, #FF9900 50%, #FF6600 100%)'
-        : 'linear-gradient(to bottom, #FF4500 0%, #DC143C 50%, #B22222 100%)';
+    // UPDATED: Different gradients based on mode
+    const isDistress = mode === 'distress';
+    const stressGradient = isDistress
+        ? (stressorPercent <= 40 ? 'linear-gradient(to bottom, #e9d5ff 0%, #d8b4fe 50%, #a855f7 100%)'
+         : stressorPercent <= 60 ? 'linear-gradient(to bottom, #a855f7 0%, #7c3aed 50%, #6d28d9 100%)'
+         : 'linear-gradient(to bottom, #5b21b6 0%, #4c1d95 50%, #3b0764 100%)')
+        : (stressorPercent <= 40 ? 'linear-gradient(to bottom, #FFFF00 0%, #FFFF33 50%, #FFCC00 100%)'
+         : stressorPercent <= 60 ? 'linear-gradient(to bottom, #FFCC00 0%, #FF9900 50%, #FF6600 100%)'
+         : 'linear-gradient(to bottom, #FF4500 0%, #DC143C 50%, #B22222 100%)');
     
     const regulatedGradient = 'linear-gradient(to bottom, #87CEEB 0%, #4682B4 50%, #1E90FF 100%)';
     
@@ -818,7 +842,9 @@ window.generateTimeline = function() {
                     const stressorPercent = parseFloat(entry['Stressor %']) || 0;
                     const stabilizerPercent = parseFloat(entry['Stabilizer %']) || 0;
                     const opportunityPercent = parseFloat(entry['Opportunity %']) || 0;
-                    const vizHTML = generateVisualizationHTML(stressorPercent, stabilizerPercent, opportunityPercent);
+                    // UPDATED: Detect mode from Topic field
+                    const mode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
+                    const vizHTML = generateVisualizationHTML(stressorPercent, stabilizerPercent, opportunityPercent, mode);
                     
                     html += `
                         <div class="entry-viz" 
@@ -844,6 +870,7 @@ window.generateTimeline = function() {
     }
 };
 
+// UPDATED: Add mode toggle button to tooltip
 window.showTooltip = function(event, index) {
     const tooltip = document.getElementById('tooltip');
     const entry = globalEntries[index];
@@ -853,8 +880,18 @@ window.showTooltip = function(event, index) {
     const topic = entry.Topic || 'Entry';
     const lifeArea = entry['Life Area'] || 'None';
     
+    // Detect current mode
+    const mode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
+    const isDistress = mode === 'distress';
+    
     let html = `
-        <h4>${topic || 'Entry'}</h4>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0;">${lifeArea}</h4>
+            <button onclick="toggleMode(event, ${index})" 
+                    class="mode-toggle-btn ${isDistress ? 'mode-distress' : 'mode-activation'}">
+                ${isDistress ? '💜 Distress' : '🔥 Activation'}
+            </button>
+        </div>
         <div class="tooltip-grid">
             <p><strong>Date:</strong> ${date}</p>
             <p><strong>Life Area:</strong> ${lifeArea}</p>
@@ -862,11 +899,65 @@ window.showTooltip = function(event, index) {
             <p><strong>Stabilizers:</strong> ${entry['Stabilizer %']}%</p>
             <p><strong>Opportunity:</strong> ${entry['Opportunity %']}%</p>
         </div>
-        <div class="tooltip-notes" style="margin-top: 12px; white-space: pre-wrap;">${entry.allNotes}</div>
     `;
+    
+    const parts = entry.allNotes.split('","');
+    const stressorNotes = parts[0] ? parts[0].replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+    const stabilizerNotes = parts[1] ? parts[1].replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+    const opportunityNotes = parts[2] ? parts[2].replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+    
+    let notesHTML = '<div class="tooltip-notes" style="margin-top: 12px;">';
+    
+    if (stressorNotes) {
+        notesHTML += `
+            <div style="margin-bottom: 12px;">
+                <strong style="color: #fbbf24; font-size: 15px;">🔴 Stressor:</strong>
+                <div style="margin-top: 4px; white-space: pre-wrap; color: #d1d5db;">${stressorNotes}</div>
+            </div>
+        `;
+    }
+    
+    if (stabilizerNotes) {
+        notesHTML += `
+            <div style="margin-bottom: 12px;">
+                <strong style="color: #60a5fa; font-size: 15px;">🔵 Stabilizer:</strong>
+                <div style="margin-top: 4px; white-space: pre-wrap; color: #d1d5db;">${stabilizerNotes}</div>
+            </div>
+        `;
+    }
+    
+    if (opportunityNotes) {
+        notesHTML += `
+            <div style="margin-bottom: 12px;">
+                <strong style="color: #4ade80; font-size: 15px;">🟢 Opportunity:</strong>
+                <div style="margin-top: 4px; white-space: pre-wrap; color: #d1d5db;">${opportunityNotes}</div>
+            </div>
+        `;
+    }
+    
+    notesHTML += '</div>';
+    html += notesHTML;
     
     tooltip.innerHTML = html;
     tooltip.classList.add('active');
+};
+
+// NEW: Toggle mode function
+window.toggleMode = function(event, index) {
+    event.stopPropagation();
+    const entry = globalEntries[index];
+    const currentMode = (entry.Topic || '').toLowerCase().trim();
+    
+    // Toggle between 'distress' and 'activation'
+    entry.Topic = currentMode === 'distress' ? 'activation' : 'distress';
+    
+    // Update CSV and regenerate timeline
+    const csv = entriesToCSV(globalEntries.slice().reverse());
+    document.getElementById('dataInput').value = csv;
+    generateTimeline();
+    
+    // Close tooltip
+    hideTooltip();
 };
 
 window.hideTooltip = function() {
@@ -999,73 +1090,6 @@ window.performMerge = async function() {
         statusDiv.innerHTML = `<span style="color: #dc2626;">❌ Error: ${error.message}</span>`;
         console.error(error);
     }
-};
-
-
-// ORGANIZED TOOLTIP - Split notes into 3 sections with colors
-window.showTooltip = function(event, index) {
-    const tooltip = document.getElementById('tooltip');
-    const entry = globalEntries[index];
-    if (!entry) return;
-    
-    const date = new Date(entry.Timestamp).toLocaleString();
-    const topic = entry.Topic || 'Entry';
-    const lifeArea = entry['Life Area'] || 'None';
-    
-    let html = `
-        <h4>${topic || 'Entry'}</h4>
-        <div class="tooltip-grid">
-            <p><strong>Date:</strong> ${date}</p>
-            <p><strong>Life Area:</strong> ${lifeArea}</p>
-            <p style="grid-column: 1;"><strong>Stressors:</strong> ${entry['Stressor %']}%</p>
-            <p><strong>Stabilizers:</strong> ${entry['Stabilizer %']}%</p>
-            <p><strong>Opportunity:</strong> ${entry['Opportunity %']}%</p>
-        </div>
-    `;
-    
-    // Split notes by "," pattern
-    const parts = entry.allNotes.split('","');
-    
-    // Clean each part
-    const stressorNotes = parts[0] ? parts[0].replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
-    const stabilizerNotes = parts[1] ? parts[1].replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
-    const opportunityNotes = parts[2] ? parts[2].replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
-    
-    // Display organized notes
-    let notesHTML = '<div class="tooltip-notes" style="margin-top: 12px;">';
-    
-    if (stressorNotes) {
-        notesHTML += `
-            <div style="margin-bottom: 12px;">
-                <strong style="color: #fbbf24; font-size: 15px;">🔴 Stressor:</strong>
-                <div style="margin-top: 4px; white-space: pre-wrap; color: #d1d5db;">${stressorNotes}</div>
-            </div>
-        `;
-    }
-    
-    if (stabilizerNotes) {
-        notesHTML += `
-            <div style="margin-bottom: 12px;">
-                <strong style="color: #60a5fa; font-size: 15px;">🔵 Stabilizer:</strong>
-                <div style="margin-top: 4px; white-space: pre-wrap; color: #d1d5db;">${stabilizerNotes}</div>
-            </div>
-        `;
-    }
-    
-    if (opportunityNotes) {
-        notesHTML += `
-            <div style="margin-bottom: 12px;">
-                <strong style="color: #4ade80; font-size: 15px;">🟢 Opportunity:</strong>
-                <div style="margin-top: 4px; white-space: pre-wrap; color: #d1d5db;">${opportunityNotes}</div>
-            </div>
-        `;
-    }
-    
-    notesHTML += '</div>';
-    html += notesHTML;
-    
-    tooltip.innerHTML = html;
-    tooltip.classList.add('active');
 };
 
     </script>
