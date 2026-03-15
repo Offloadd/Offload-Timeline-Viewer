@@ -466,7 +466,7 @@ async function createCheckoutSession() {
         // Create checkout session document
         const checkoutSessionRef = window.firestore.doc(window.db, `customers/${user.uid}/checkout_sessions/${Date.now()}`);
         await window.firestore.setDoc(checkoutSessionRef, {
-            price: 'price_1TBFGrAiLkPgXzSafu2jjqa9',
+            price: 'price_1TBIHSPCe2rOpKWjzIqu8R5X',
             success_url: window.location.origin,
             cancel_url: window.location.origin,
             mode: 'subscription'
