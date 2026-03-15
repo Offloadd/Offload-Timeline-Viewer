@@ -227,19 +227,21 @@ button:hover {
 
 .tooltip {
     display: none;
-    position: fixed;
+    position: absolute;
     background: rgba(0, 0, 0, 0.95);
     color: white;
     padding: 20px;
     border-radius: 8px;
     font-size: 15px;
-    width: 420px;
-    max-width: 90vw;
-    max-height: 70vh;
+    width: calc(100% - 48px);
+    max-width: none;
+    max-height: 400px;
     overflow-y: auto;
     z-index: 1000;
     pointer-events: auto;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    top: 260px;
+    left: 24px;
+    right: 24px;
 }
 
 .tooltip.active {
@@ -371,7 +373,7 @@ Instructions:
     <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD0L71PHIIagURWY-odijmHAxzjvhpuVpY",
@@ -389,20 +391,103 @@ const db = getFirestore(app);
 window.auth = auth;
 window.db = db;
 window.firebaseAuth = { createUserWithEmailAndPassword, signInWithEmailAndPassword, firebaseSignOut };
-window.firestore = { collection, doc, setDoc, getDoc, updateDoc, deleteDoc, getDocs };
+window.firestore = { collection, doc, setDoc, getDoc, updateDoc, deleteDoc, getDocs, onSnapshot };
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
         document.getElementById('authForm').style.display = 'none';
         document.getElementById('userInfo').style.display = 'block';
         document.getElementById('userEmail').textContent = user.email;
-        document.getElementById('appContent').style.display = 'block';
+        
+        // Check subscription status
+        checkSubscription(user.uid);
     } else {
         document.getElementById('authForm').style.display = 'flex';
         document.getElementById('userInfo').style.display = 'none';
         document.getElementById('appContent').style.display = 'none';
     }
 });
+
+async function checkSubscription(userId) {
+    try {
+        // Check if user has active subscription in Firestore
+        const subscriptionsRef = window.firestore.collection(window.db, `customers/${userId}/subscriptions`);
+        const subscriptionsSnapshot = await window.firestore.getDocs(subscriptionsRef);
+        
+        let hasActiveSubscription = false;
+        subscriptionsSnapshot.forEach((doc) => {
+            const subscription = doc.data();
+            if (subscription.status === 'active' || subscription.status === 'trialing') {
+                hasActiveSubscription = true;
+            }
+        });
+        
+        if (hasActiveSubscription) {
+            // User has subscription - show app
+            document.getElementById('appContent').style.display = 'block';
+            const subMessage = document.getElementById('subscriptionMessage');
+            if (subMessage) subMessage.style.display = 'none';
+        } else {
+            // No subscription - show subscribe message
+            document.getElementById('appContent').style.display = 'none';
+            showSubscriptionMessage();
+        }
+    } catch (error) {
+        console.error('Error checking subscription:', error);
+        // On error, show subscribe message to be safe
+        showSubscriptionMessage();
+    }
+}
+
+function showSubscriptionMessage() {
+    let subMessage = document.getElementById('subscriptionMessage');
+    if (!subMessage) {
+        subMessage = document.createElement('div');
+        subMessage.id = 'subscriptionMessage';
+        subMessage.style.cssText = 'text-align: center; padding: 3rem 2rem; max-width: 600px; margin: 2rem auto;';
+        subMessage.innerHTML = `
+            <h2 style="font-family: 'DM Serif Display', serif; font-size: 1.75rem; margin-bottom: 1rem;">Subscribe to Access Offload</h2>
+            <p style="margin-bottom: 2rem; font-size: 1.1rem; color: #6b7280;">Get access to all Offload tools with a monthly subscription.</p>
+            <button onclick="createCheckoutSession()" style="background: #2563eb; color: white; border: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer;">Subscribe Now - $10/month</button>
+        `;
+        document.querySelector('.container').appendChild(subMessage);
+    }
+    subMessage.style.display = 'block';
+}
+
+async function createCheckoutSession() {
+    const user = window.auth.currentUser;
+    if (!user) {
+        alert('Please log in first');
+        return;
+    }
+    
+    try {
+        // Create checkout session document
+        const checkoutSessionRef = window.firestore.doc(window.db, `customers/${user.uid}/checkout_sessions/${Date.now()}`);
+        await window.firestore.setDoc(checkoutSessionRef, {
+            price: 'price_1TBFGrAiLkPgXzSafu2jjqa9',
+            success_url: window.location.origin,
+            cancel_url: window.location.origin,
+            mode: 'subscription'
+        });
+        
+        // Listen for the checkout URL
+        const unsubscribe = window.firestore.onSnapshot(checkoutSessionRef, (doc) => {
+            const data = doc.data();
+            if (data && data.url) {
+                // Redirect to Stripe Checkout
+                window.location.href = data.url;
+                unsubscribe();
+            }
+        });
+    } catch (error) {
+        console.error('Error creating checkout session:', error);
+        alert('Error starting checkout. Please try again.');
+    }
+}
+
+window.createCheckoutSession = createCheckoutSession;
 
 window.signUp = async function() {
     const email = document.getElementById('emailInput').value;
@@ -789,7 +874,6 @@ function generateVisualizationHTML(stressorPercent, stabilizerPercent, opportuni
 }
 
 let globalEntries = [];
-let modeOverrides = new Map(); // keyed by Timestamp, value: 'distress' or 'activation'
 
 window.generateTimeline = function() {
     const input = document.getElementById('dataInput').value;
@@ -857,14 +941,14 @@ window.generateTimeline = function() {
                     const stressorPercent = parseFloat(entry['Stressor %']) || 0;
                     const stabilizerPercent = parseFloat(entry['Stabilizer %']) || 0;
                     const opportunityPercent = parseFloat(entry['Opportunity %']) || 0;
-                    // Detect mode: check override map first, then fall back to Topic field
-                    const topicMode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
-                    const mode = modeOverrides.has(entry.Timestamp) ? modeOverrides.get(entry.Timestamp) : topicMode;
+                    // UPDATED: Detect mode from Topic field
+                    const mode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
                     const vizHTML = generateVisualizationHTML(stressorPercent, stabilizerPercent, opportunityPercent, mode);
                     
                     html += `
                         <div class="entry-viz" 
-                             onclick="toggleTooltip(event, ${globalIndex})"
+                             onmouseenter="showTooltip(event, ${globalIndex})"
+                             onmouseleave="hideTooltip()"
                              data-index="${globalIndex}">
                             <button class="delete-btn" onclick="deleteEntry(event, ${globalIndex})" title="Delete this entry">×</button>
                             ${vizHTML}
@@ -895,9 +979,8 @@ window.showTooltip = function(event, index) {
     const topic = entry.Topic || 'Entry';
     const lifeArea = entry['Life Area'] || 'None';
     
-    // Detect current mode from override map or Topic field
-    const topicMode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
-    const mode = modeOverrides.has(entry.Timestamp) ? modeOverrides.get(entry.Timestamp) : topicMode;
+    // Detect current mode
+    const mode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
     const isDistress = mode === 'distress';
     
     let html = `
@@ -955,61 +1038,30 @@ window.showTooltip = function(event, index) {
     html += notesHTML;
     
     tooltip.innerHTML = html;
-    tooltip.dataset.activeIndex = index;
-
-    // Position near cursor, keeping on screen
-    const x = event.clientX + 12;
-    const y = event.clientY + 12;
-    tooltip.style.left = Math.min(x, window.innerWidth - 440) + 'px';
-    tooltip.style.top = Math.min(y, window.innerHeight - 300) + 'px';
-
     tooltip.classList.add('active');
-};
-
-window.toggleTooltip = function(event, index) {
-    event.stopPropagation();
-    const tooltip = document.getElementById('tooltip');
-    const isOpen = tooltip.classList.contains('active');
-    const currentIndex = parseInt(tooltip.dataset.activeIndex);
-    if (isOpen && currentIndex === index) {
-        hideTooltip();
-    } else {
-        showTooltip(event, index);
-    }
 };
 
 // NEW: Toggle mode function
 window.toggleMode = function(event, index) {
     event.stopPropagation();
     const entry = globalEntries[index];
+    const currentMode = (entry.Topic || '').toLowerCase().trim();
     
-    // Get current effective mode
-    const topicMode = (entry.Topic || '').toLowerCase().trim() === 'distress' ? 'distress' : 'activation';
-    const currentMode = modeOverrides.has(entry.Timestamp) ? modeOverrides.get(entry.Timestamp) : topicMode;
+    // Toggle between 'distress' and 'activation'
+    entry.Topic = currentMode === 'distress' ? 'activation' : 'distress';
     
-    // Toggle and store in override map — never touch Topic
-    const newMode = currentMode === 'distress' ? 'activation' : 'distress';
-    modeOverrides.set(entry.Timestamp, newMode);
-    
-    // Regenerate timeline (preserves order, doesn't touch CSV)
+    // Update CSV and regenerate timeline
+    const csv = entriesToCSV(globalEntries.slice().reverse());
+    document.getElementById('dataInput').value = csv;
     generateTimeline();
     
-    // Re-show tooltip with updated mode
-    showTooltip(event, index);
+    // Close tooltip
+    hideTooltip();
 };
 
 window.hideTooltip = function() {
-    const tooltip = document.getElementById('tooltip');
-    tooltip.classList.remove('active');
-    tooltip.dataset.activeIndex = '';
+    document.getElementById('tooltip').classList.remove('active');
 };
-
-document.addEventListener('click', function(event) {
-    const tooltip = document.getElementById('tooltip');
-    if (tooltip.classList.contains('active') && !tooltip.contains(event.target)) {
-        hideTooltip();
-    }
-});
 
 window.clearData = function() {
     document.getElementById('dataInput').value = '';
