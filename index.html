@@ -1045,18 +1045,20 @@ window.showTooltip = function(event, index) {
 window.toggleMode = function(event, index) {
     event.stopPropagation();
     const entry = globalEntries[index];
+    if (!entry) return;
+    
     const currentMode = (entry.Topic || '').toLowerCase().trim();
     
     // Toggle between 'distress' and 'activation'
     entry.Topic = currentMode === 'distress' ? 'activation' : 'distress';
     
-    // Update CSV and regenerate timeline
-    const csv = entriesToCSV(globalEntries.slice().reverse());
+    // Update the CSV in the textarea
+    const reversedEntries = [...globalEntries].reverse();
+    const csv = entriesToCSV(reversedEntries);
     document.getElementById('dataInput').value = csv;
-    generateTimeline();
     
-    // Close tooltip
-    hideTooltip();
+    // Regenerate timeline with updated data
+    generateTimeline();
 };
 
 window.hideTooltip = function() {
