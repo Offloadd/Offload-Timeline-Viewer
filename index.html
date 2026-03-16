@@ -374,6 +374,7 @@ Instructions:
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD0L71PHIIagURWY-odijmHAxzjvhpuVpY",
@@ -488,6 +489,28 @@ async function createCheckoutSession() {
 }
 
 window.createCheckoutSession = createCheckoutSession;
+
+window.manageSubscription = async function() {
+    const user = window.auth.currentUser;
+    if (!user) {
+        alert('Please log in first');
+        return;
+    }
+    
+    try {
+        const functions = getFunctions();
+        const createPortalLink = httpsCallable(functions, 'ext-firestore-stripe-payments-createPortalLink');
+        
+        const { data } = await createPortalLink({
+            returnUrl: window.location.origin,
+        });
+        
+        window.location.assign(data.url);
+    } catch (error) {
+        console.error('Error opening customer portal:', error);
+        alert('Error opening subscription management. Please try again.');
+    }
+};
 
 window.signUp = async function() {
     const email = document.getElementById('emailInput').value;
@@ -1199,6 +1222,8 @@ window.performMerge = async function() {
         <a href="https://offload---self-help-tools.web.app/#privacy" style="color: #2563eb; text-decoration: none; margin: 0 1rem;">Privacy Policy</a>
         <span>|</span>
         <a href="https://offload---self-help-tools.web.app/#terms" style="color: #2563eb; text-decoration: none; margin: 0 1rem;">Terms of Service</a>
+        <span>|</span>
+        <a href="#" onclick="manageSubscription(); return false;" style="color: #2563eb; text-decoration: none; margin: 0 1rem;">Manage Subscription</a>
     </div>
 </body>
 </html>
